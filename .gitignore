@@ -1,0 +1,8 @@
+**/.vscode
+**/.DS_Store
+
+**/obj/**
+**/percolate
+**/params
+**/driver
+**/log.txt
