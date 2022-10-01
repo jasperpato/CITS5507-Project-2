@@ -15,7 +15,7 @@
 #include <time.h>
 
 #define N_MIN 100
-#define N_MAX 3000
+#define N_MAX 100
 #define N_STEP 100
 
 #define P_MIN 0.0
@@ -30,11 +30,11 @@
 
 #define ARG_LENGTH 40
 
-#define RESULTS_FILE "../test/results_4t.csv"
+#define RESULTS_FILE "../test/p1_results_4t.csv"
 
 
 /**
- * USAGE: ./driver [-f RESULTS_FILENAME] [-l LOG_FILENAME]
+ * USAGE: ./driver [-k] [-f RESULTS_FILENAME] [-l LOG_FILENAME]
  * 
  * Loops through n, p and n_threads values and calls percolate program infinitely, which appends results to file.
  */
@@ -44,16 +44,18 @@ int main(int argc, char *argv[]) {
   char* resfile_name = NULL;
   char* logfile_name = NULL;
 
-  while((opt = getopt(argc, argv, "f:l:")) != -1) {
+  short kaya = 0; 
+
+  while((opt = getopt(argc, argv, "kf:l:")) != -1) {
     switch(opt) {
+      case 'k':
+        kaya = 1; break;
       case 'f':
-        resfile_name = optarg;
-        break;
+        resfile_name = optarg; break;
       case 'l':
-        logfile_name = optarg;
-        break;
+        logfile_name = optarg; break;
       default:
-        fprintf(stderr, "Usage: [-f RESULTS_FILENAME] [-l LOG_FILENAME]");
+        fprintf(stderr, "Usage: [-k] [-f RESULTS_FILENAME] [-l LOG_FILENAME]");
         exit(EXIT_FAILURE);
     }
   }
@@ -71,19 +73,35 @@ int main(int argc, char *argv[]) {
           }
 
           else if(pid == 0) { // child
-            char *args[] = {"percolate", "-v", "-p", NULL, "-r", NULL, NULL, NULL, NULL, NULL};
-            args[3] = malloc(ARG_LENGTH*sizeof(char));
-            for(int i = 5; i < 9; ++i) args[i] = malloc(ARG_LENGTH*sizeof(char));
-            sprintf(args[3], "%s", resfile_name != NULL ? resfile_name : RESULTS_FILE);
-            sprintf(args[5], "%d", seed); // same seed for all n_threads
-            sprintf(args[6], "%d", n);
-            sprintf(args[7], "%f", p);
-            sprintf(args[8], "%d", nt);
-            execv("../src/percolate", args);
-            exit(EXIT_SUCCESS);
+            if(kaya) {
+              char *args[] = {"percolate", "-k", "-r", NULL, NULL, NULL, NULL, NULL};
+
+              for(int i = 3; i < 7; ++i) args[i] = malloc(ARG_LENGTH*sizeof(char));
+
+              sprintf(args[3], "%d", seed); // same seed for all n_threads
+              sprintf(args[4], "%d", n);
+              sprintf(args[5], "%f", p);
+              sprintf(args[6], "%d", nt);
+
+              execv("../src/percolate", args);
+            }
+            else {
+              char *args[] = {"percolate", "-v", "-p", NULL, "-r", NULL, NULL, NULL, NULL, NULL};
+
+              args[3] = malloc(ARG_LENGTH*sizeof(char));
+              for(int i = 5; i < 9; ++i) args[i] = malloc(ARG_LENGTH*sizeof(char));
+
+              sprintf(args[3], "%s", resfile_name != NULL ? resfile_name : RESULTS_FILE);
+              sprintf(args[5], "%d", seed); // same seed for all n_threads
+              sprintf(args[6], "%d", n);
+              sprintf(args[7], "%f", p);
+              sprintf(args[8], "%d", nt);
+
+              execv("../src/percolate", args);
+            }
           }
 
-          else {
+          else { // parent
             int status;
             wait(&status); // wait for child
             if (!WIFEXITED(status) && logfile_name != NULL) {
@@ -94,6 +112,10 @@ int main(int argc, char *argv[]) {
           }
         }
       }
+    }
+    if(kaya) {
+      // manually append results to a kaya results file
+      break;
     }
   }
   

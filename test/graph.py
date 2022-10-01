@@ -101,7 +101,7 @@ def graph(results, n_threads, const, c, time, n_squared=False):
 
 if __name__ == '__main__':
   a = ArgumentParser()
-  a.add_argument('--fname', default='results_4t.csv')
+  a.add_argument('--fname', default='p1_results_4t.csv')
   a.add_argument('--n-threads', default=4, type=int)
   a.add_argument('--time', default='total_time', help='Type of time to track. Options = {init_time, perc_time, join_time, scan_time, total_time}')
   a.add_argument('-n', type=int)

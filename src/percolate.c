@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
   Bond* b = NULL;
   
   // options
-  short site = 1, verbose = 1;
+  short site = 1, verbose = 1, kaya = 0;
   char* fname = NULL, *rname = NULL;
   unsigned int seed = time(NULL); // default unique seed
 
@@ -260,9 +260,10 @@ int main(int argc, char *argv[])
   int n_threads = 1;
   
   int c;
-  while ((c = getopt(argc, argv, "vbsf:p:r:")) != -1) {
+  while ((c = getopt(argc, argv, "kvbsf:p:r:")) != -1) {
     if(c == 'v') verbose = 0;   // silence printing
     else if(c == 'b') site = 0; // bond
+    else if(c == 'k') kaya = 1; // print results to stdout in csv format, and print nothing else
     else if(c == 'f') {         // scan lattice from file
       if(!optarg) {
         printf("Error.\n");
@@ -298,7 +299,7 @@ int main(int argc, char *argv[])
         printf("Error.\n");
         exit(errno);
       }
-      print_site_array(a, n);
+      if(verbose && !kaya) print_site_array(a, n);
     } else {
       b = file_bond(fname, n);
       if(!b) {
@@ -310,7 +311,7 @@ int main(int argc, char *argv[])
         printf("Memory error.\n");
         exit(errno);
       }
-      print_bond(b, n);
+      if(verbose && !kaya) print_bond(b, n);
     }
   } else { // initialise random lattice
     if(argc - optind < 2) {
@@ -325,11 +326,11 @@ int main(int argc, char *argv[])
     srand(seed);
     if(site) {
       a = site_array(n, p);
-      print_site_array(a, n);
+      if(verbose && !kaya) print_site_array(a, n);
     } else {
       b = bond(n, p);
       a = site_array(n, -1.0);
-      print_bond(b, n);
+      if(verbose && !kaya) print_bond(b, n);
     }
   }
   if(n < 1 || n_threads < 1) {
@@ -345,7 +346,7 @@ int main(int argc, char *argv[])
   omp_set_num_threads(n_threads);
   CPArray* cpa = cluster_array(n_threads, max_clusters); // each thread keeps an array of its cluster pointers 
 
-  if(verbose) {
+  if(verbose && !kaya) {
     printf("\n%s %d-Thread\n", site ? "Site" : "Bond", n_threads);
     printf("\nN: %d\n", n);
     if(p != -1.0) printf("P: %.2f\n", p);
@@ -354,7 +355,7 @@ int main(int argc, char *argv[])
 
   double init = omp_get_wtime();
   double init_time = init-start;
-  if(verbose) printf("\n Init time: %9.6f\n", init_time);
+  if(verbose && !kaya) printf("\n Init time: %9.6f\n", init_time);
 
   #pragma omp parallel
   {
@@ -363,22 +364,22 @@ int main(int argc, char *argv[])
   }
   double pt = omp_get_wtime();
   double perc_time = pt-init;
-  if(verbose) printf(" Perc time: %9.6f\n", perc_time);
+  if(verbose && !kaya) printf(" Perc time: %9.6f\n", perc_time);
 
   if(n_threads > 1) join_clusters(a, b, n, n_threads);
   double join = omp_get_wtime();
   double join_time = join-pt;
-  if(verbose) printf(" Join time: %9.6f\n", join_time);
+  if(verbose && !kaya) printf(" Join time: %9.6f\n", join_time);
 
   int num = 0, max = 0;
   short rperc = 0, cperc = 0;
   scan_clusters(cpa, n, n_threads, &num, &max, &rperc, &cperc);
   double scan_time = omp_get_wtime()-join;
-  if(verbose) printf(" Scan time: %9.6f\n", scan_time);
+  if(verbose && !kaya) printf(" Scan time: %9.6f\n", scan_time);
 
   double total_time = omp_get_wtime()-start;
   
-  if(verbose) {
+  if(verbose && !kaya) {
     printf("Total time: %9.6f\n", total_time);
     printf("\n   Num clusters: %d\n", num);
     printf("       Max size: %d\n", max);
@@ -398,6 +399,13 @@ int main(int argc, char *argv[])
       n, p, n_threads, seed, num, max, rperc, cperc, init_time, perc_time, join_time, scan_time, total_time
     );
     fclose(f);
+  }
+
+  if(kaya) {
+    printf(
+      "%d,%f,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f\n",
+      n, p, n_threads, seed, num, max, rperc, cperc, init_time, perc_time, join_time, scan_time, total_time
+    );
   }
   exit(EXIT_SUCCESS);
 }

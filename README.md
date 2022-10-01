@@ -54,7 +54,7 @@ Examples:
 
 - Silence printing and append results to file
   ```console
-  ./percolate -v -p ../test/results_4t.csv 100 0.1
+  ./percolate -v -p ../test/p1_results_4t.csv 100 0.1
   ```
 
 To generate results:
