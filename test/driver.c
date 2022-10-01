@@ -15,7 +15,7 @@
 #include <time.h>
 
 #define N_MIN 100
-#define N_MAX 100
+#define N_MAX 3000
 #define N_STEP 100
 
 #define P_MIN 0.0
@@ -25,7 +25,7 @@
 #define P_RES (int)1e3
 
 #define NT_MIN 1
-#define NT_MAX 28
+#define NT_MAX 12
 #define NT_STEP 1
 
 #define ARG_LENGTH 40
