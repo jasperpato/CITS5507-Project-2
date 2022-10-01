@@ -25,7 +25,7 @@
 #define P_RES (int)1e3
 
 #define NT_MIN 1
-#define NT_MAX 4
+#define NT_MAX 28
 #define NT_STEP 1
 
 #define ARG_LENGTH 40
