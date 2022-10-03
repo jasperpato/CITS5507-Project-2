@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 P_RES = 1e-3
+RESULTS_FILE = './p2_results_kaya.csv'
 
 '''
 Returns a list of dictionaries - one for each row in csvfile
@@ -101,7 +102,7 @@ def graph(results, n_threads, const, c, time, n_squared=False):
 
 if __name__ == '__main__':
   a = ArgumentParser()
-  a.add_argument('--fname', default='p1_results_4t.csv')
+  a.add_argument('--fname', default=RESULTS_FILE)
   a.add_argument('--n-threads', default=4, type=int)
   a.add_argument('--time', default='total_time', help='Type of time to track. Options = {init_time, perc_time, join_time, scan_time, total_time}')
   a.add_argument('-n', type=int)
