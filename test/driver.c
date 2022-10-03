@@ -34,25 +34,12 @@
 
 #define ARG_LENGTH 40
 
-#define RESULTS_FILE "../test/p2_results_kaya.csv"
-
 /**
- * USAGE: ./driver [-k] [-f RESULTS_FILENAME] [-l LOG_FILENAME]
+ * USAGE: ./driver
  * 
- * Loops through n, p and n_threads values and calls percolate program infinitely, which appends results to file.
+ * Loops through n, p n_cpus and n_threads values and calls percolate program infinitely
  */
 int main(int argc, char *argv[]) {
-  char* resfile_name = RESULTS_FILE;
-  char* logfile_name = NULL;
-  int opt;
-  while((opt = getopt(argc, argv, "f:l:")) != -1) {
-    if(opt == 'f') resfile_name = optarg; 
-    else if(opt == 'l') logfile_name = optarg;
-    else {
-      fprintf(stderr, "Usage: [-f RESULTS_FILENAME] [-l LOG_FILENAME]");
-      exit(EXIT_FAILURE);
-    }
-  }
   srand(time(NULL));
   while(1) {
     for(int n = N_MIN; n <= N_MAX; n+=N_STEP) {
@@ -76,11 +63,7 @@ int main(int argc, char *argv[]) {
             else { // parent
               int status;
               wait(&status); // wait for child
-              if (!WIFEXITED(status) && logfile_name != NULL) {
-                FILE* logfile = fopen(logfile_name, "a");
-                fprintf(logfile, "Error: %s with parameters N=%d, P=%f, NC=%d, NT=%d\n", strerror(status), n, p, n_cpus, n_threads);
-                fclose(logfile);
-              }
+              if (!WIFEXITED(status)) printf("%s\n", strerror(status));
             }
           }
         }
