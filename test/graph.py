@@ -9,7 +9,7 @@ Allen Antony 22706998
 '''
 Reads results file and graphs all n_threads on a plot. Keeps either n or p constant as specified.
 
-USAGE: python3 graph.py [-n N | -p P] [--fname RESULTS_FILE]
+USAGE: python3 graph.py [-n N | -p P] [--time TIME] [--n-squared] [--n-threads N_THREADS] [--fname RESULTS_FILE]
 
 N keep lattice size constant at N
 P keep probability constant at P
