@@ -64,8 +64,8 @@ int main(int argc, char *argv[]) {
             int pid = fork();
             if(pid == -1) exit(EXIT_FAILURE);
             else if(pid == 0) { // child
-              char *args[] = {"percolate", "-r", NULL, NULL, NULL, NULL, NULL};
-              for(int i = 2; i < 6; ++i) args[i] = malloc(ARG_LENGTH*sizeof(char));
+              char *args[] = {"percolate", "-r", NULL, NULL, NULL, NULL, NULL, NULL};
+              for(int i = 2; i < 7; ++i) args[i] = malloc(ARG_LENGTH*sizeof(char));
               sprintf(args[2], "%d", seed); // same seed for all n_threads
               sprintf(args[3], "%d", n);
               sprintf(args[4], "%f", p);
