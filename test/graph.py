@@ -4,9 +4,9 @@ LATTICE PERCOLATION IN PARALLEL
 
 Jasper Paterson 22736341
 Allen Antony 22706998
-'''
 
-'''
+MUST BE UPDATED FOR N_CPUS
+
 Reads results file and graphs all n_threads on a plot. Keeps either n or p constant as specified.
 
 USAGE: python3 graph.py [-n N | -p P] [--time TIME] [--n-squared] [--n-threads N_THREADS] [--fname RESULTS_FILE]
@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 P_RES = 1e-3
+
 RESULTS_FILE = './p2_results_kaya.csv'
 
 '''

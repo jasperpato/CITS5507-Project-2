@@ -1,5 +1,5 @@
 IDIR = ../include
-CC = gcc
+CC = mpicc
 CFLAGS = -I$(IDIR) -std=c11 -Wall -Werror -fopenmp # -Wno-unused-function -g
 
 ODIR = obj

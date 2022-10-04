@@ -35,7 +35,7 @@
 #define ARG_LENGTH 40
 
 /**
- * USAGE: ./driver
+ * USAGE: ./driver [ >> RESULTS_FILE ] (pipe csv results from stdout to file)
  * 
  * Loops through n, p n_cpus and n_threads values and calls percolate program infinitely
  */

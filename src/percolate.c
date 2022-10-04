@@ -10,8 +10,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include <omp.h>
 #include <errno.h>
+
+#include <omp.h>
+#include <mpi.h>
 
 #include "../include/stack.h"
 #include "../include/site.h"
@@ -246,6 +248,12 @@ int main(int argc, char *argv[])
 {
   double start = omp_get_wtime();
   
+  int rank, size;
+
+  MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
   Site* a = NULL;
   Bond* b = NULL;
   
@@ -257,7 +265,7 @@ int main(int argc, char *argv[])
   // positional arguments
   int n;
   float p = -1.0;
-  int n_cpus = 1, n_threads = 1;
+  int n_threads = 1;
   
   int c;
   while ((c = getopt(argc, argv, "vbsf:r:")) != -1) {
@@ -279,13 +287,12 @@ int main(int argc, char *argv[])
     }
   }
   if(fname) { // scan lattice from file
-    if(argc - optind < 3) {
+    if(argc - optind < 1) {
       printf("Invalid arguments.\n");
       exit(errno);
     }
     n = atoi(argv[optind++]);
-    n_cpus = atoi(argv[optind++]);
-    n_threads = atoi(argv[optind]);
+    if(argc - optind) n_threads = atoi(argv[optind]);
 
     if(site) {
       a = file_site_array(fname, n);
@@ -308,14 +315,13 @@ int main(int argc, char *argv[])
       if(verbose) print_bond(b, n);
     }
   } else { // initialise random lattice
-    if(argc - optind < 4) {
+    if(argc - optind < 3) {
       printf("Invalid arguments.\n");
       exit(errno);
     }
     n = atoi(argv[optind++]);
     p = atof(argv[optind++]);
-    n_cpus = atoi(argv[optind++]);
-    n_threads = atoi(argv[optind++]);
+    if(argc - optind) n_threads = atoi(argv[optind]);
     
     srand(seed);
     if(site) {
@@ -343,7 +349,7 @@ int main(int argc, char *argv[])
   if(verbose) {
     printf("\n");
     printf("%s\n", site ? "Site" : "Bond");
-    printf("%d CPU%s\n",  n_cpus, n_cpus > 1 ? "s" : "");
+    printf("%d CPU%s\n",  size, size > 1 ? "s" : "");
     printf("%d thread%s\n", n_threads, n_threads > 1 ? "s" : "");
     printf("\n");
     printf("N: %d\n", n);
@@ -388,7 +394,7 @@ int main(int argc, char *argv[])
   } else {
     printf(
       "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f\n",
-      n, p, n_cpus, n_threads, seed, num, max, rperc, cperc, init_time, perc_time, join_time, scan_time, total_time
+      n, p, size, n_threads, seed, num, max, rperc, cperc, init_time, perc_time, join_time, scan_time, total_time
     );
   }
   exit(EXIT_SUCCESS);
