@@ -23,21 +23,29 @@
 #define MASTER 0
 
 /**
- * @return int start index of the region of the lattice allocated to this thread.
- * Allocates n/n_threads rows to the first n_threads-n%n_threads threads and n/n_threads+1 rows to the remaining threads.
+ * @return int start index of the region of the lattice allocated to this id.
+ * Allocates n/n_threads+1 rows to the first n%n_threads ids and n/n_threads rows to the remaining ids.
  */
-static int start_index(int n, int n_threads, int tid)
+static int start_index(int n, int id, int num_ids)
 {
-  return tid < n%n_threads ? n*tid*(n/n_threads+1) : n*(n%n_threads)*(n/n_threads+1) + n*(tid-n%n_threads)*(n/n_threads);
+  return id < n%num_ids ? n*id*(n/num_ids+1) : n*(n%num_ids)*(n/num_ids+1) + n*(id-n%num_ids)*(n/num_ids);
 }
 
 /**
- * @return int end index of the region of the lattice allocated to this thread.
+ * @return int end index of the region of the lattice allocated to this id.
  */
-static int end_index(int n, int n_threads, int tid)
+static int end_index(int n, int id, int num_ids)
 {
-  tid += 1;
-  return start_index(n, n_threads, tid);
+  id += 1;
+  return start_index(n, id, num_ids);
+}
+
+/**
+ * @return int number of nodes allocated to this id
+ */
+static int get_count(int n, int id, int num_ids)
+{
+  return id < n%num_ids ? n/num_ids+1 : n/num_ids;
 }
 
 /**
