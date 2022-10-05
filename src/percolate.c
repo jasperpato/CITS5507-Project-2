@@ -1,5 +1,5 @@
 /*
- * CITS5507 HPC PROJECT 1
+ * CITS5507 HPC PROJECT 2
  * LATTICE PERCOLATION IN PARALLEL
  * 
  * Jasper Paterson 22736341
@@ -79,10 +79,6 @@ static Site* bottom_neighbour(Site* a, Bond* b, int n, Site* s)
   int i = ((s->r+n+1)%n)*n+s->c; // index of bottom neighbour in a and bottom bond in b
   Site *nb = &a[i];
   if((!b && !nb->occupied) || (b && !b->v[i])) return NULL;
-  if(!s->cluster || !nb->cluster) {
-    printf("Error if here.\n"); // both clusters should have been initialised
-    return NULL;
-  }
   if(s->cluster->id == nb->cluster->id) return NULL;
   return nb;
 }
@@ -233,16 +229,14 @@ static void scan_clusters(CPArray* cpa, int n, int n_threads, int *num, int *max
 }
 
 /**
- * USAGE: ./percolate [-s | -b] [-v] [-r SEED] [-p RESULTS_FILENAME] [[-f LATTICE_FILENAME] | [N PROBABILITY]] [N_THREADS]
+ * USAGE: ./percolate [-s | -b] [-v] [-r SEED] [[-f LATTICE_FILENAME] | [N PROBABILITY]] [N_THREADS]
  * 
  * [-s | -b] site or bond percolation, default site
- * [-v] silence printing
+ * [-v] verbose
  * [-r SEED] number to seed srand, default time(NULL)
- * [-p RESULTS_FILENAME] file to append the results of the percolation
  * [-f LATTICE_FILENAME] file to scan lattice from
  * [N PROBABILITY] size of lattice and probability of site occupation or bond
  * [N_THREADS] number of threads to utilise
- * 
  */
 int main(int argc, char *argv[])
 {
@@ -256,94 +250,66 @@ int main(int argc, char *argv[])
 
   Site* a = NULL;
   Bond* b = NULL;
-  
-  // options
+
+  // process optional arguments
   short site = 1, verbose = 0;
   char* fname = NULL;
   unsigned int seed = time(NULL); // default unique seed
 
-  // positional arguments
+  int c;
+  while ((c = getopt(argc, argv, "vbsf:r:")) != -1) {
+    if(c == 'v') verbose = 1;              // silence printing
+    else if(c == 'b') site = 0;            // bond
+    else if(c == 'f') fname = optarg;      // scan lattice from file
+    else if(c == 'r') seed = atoi(optarg); // seed rand with constant
+  }
+
+  // process positional arguments
   int n;
   float p = -1.0;
   int n_threads = 1;
-  
-  int c;
-  while ((c = getopt(argc, argv, "vbsf:r:")) != -1) {
-    if(c == 'v') verbose = 1;   // silence printing
-    else if(c == 'b') site = 0; // bond
-    else if(c == 'f') {         // scan lattice from file
-      if(!optarg) {
-        printf("Error.\n");
-        exit(errno);
-      }
-      fname = optarg;
-    }
-    else if(c == 'r') {         // seed rand with constant
-      if(!optarg) {
-        printf("Error.\n");
-        exit(errno);
-      }
-      seed = atoi(optarg);
-    }
-  }
-  if(fname) { // scan lattice from file
-    if(argc - optind < 1) {
-      printf("Invalid arguments.\n");
-      exit(errno);
-    }
-    n = atoi(argv[optind++]);
-    if(argc - optind) n_threads = atoi(argv[optind]);
 
-    if(site) {
-      a = file_site_array(fname, n);
-      if(!a) {
-        printf("Error.\n");
-        exit(errno);
-      }
-      if(verbose) print_site_array(a, n);
-    } else {
-      b = file_bond(fname, n);
-      if(!b) {
-        printf("Error.\n");
-        exit(errno);
-      }
-      a = site_array(n, -1.0);
-      if(!a) {
-        printf("Memory error.\n");
-        exit(errno);
-      }
-      if(verbose) print_bond(b, n);
-    }
-  } else { // initialise random lattice
-    if(argc - optind < 3) {
-      printf("Invalid arguments.\n");
-      exit(errno);
-    }
-    n = atoi(argv[optind++]);
-    p = atof(argv[optind++]);
-    if(argc - optind) n_threads = atoi(argv[optind]);
-    
-    srand(seed);
-    if(site) {
-      a = site_array(n, p);
-      if(verbose) print_site_array(a, n);
-    } else {
-      b = bond(n, p);
-      a = site_array(n, -1.0);
-      if(verbose) print_bond(b, n);
-    }
+  if((fname && argc - optind < 1) || (!fname && argc - optind < 2)) {
+    printf("Invalid arguments.\n");
+    exit(errno);
   }
+  n = atoi(argv[optind++]);
+  if(!fname) p = atof(argv[optind++]);
+  if(argc - optind) n_threads = atoi(argv[optind]);
+
   if(n < 1 || n_threads < 1) {
     printf("Invalid arguments.\n");
     exit(errno);
   }
 
-  int max_clusters = n % 2 == 0 ? n*n/2 : (n-1)*(n-1)/2+1;
+  // initialise lattice
+  srand(seed);
+  if(site) {
+    if(fname) a = file_site_array(fname, n);
+    else a = site_array(n, p);
+    if(!a) {
+      printf("Memory Error.\n");
+      exit(errno);
+    }
+    if(verbose) print_site_array(a, n);
+  }
+  else {
+    if(fname) b = file_bond(fname, n);
+    else b = bond(n, p);
+    a = site_array(n, -1.0);
+    if(!b || !a) {
+      printf("Memory error.\n");
+      exit(errno);
+    }
+    if(verbose) print_bond(b, n);
+  }
 
   int max_threads = omp_get_max_threads();
   if(n_threads > max_threads) n_threads = max_threads;
   if(n_threads > n) n_threads = n;
   omp_set_num_threads(n_threads);
+
+  int max_clusters = n % 2 == 0 ? n*n/2 : (n-1)*(n-1)/2+1; // maximum number of size 1 clusters for a given n
   CPArray* cpa = cluster_array(n_threads, max_clusters); // each thread keeps an array of its cluster pointers 
 
   if(verbose) {
@@ -361,7 +327,6 @@ int main(int argc, char *argv[])
   }
   double init = omp_get_wtime();
   double init_time = init-start;
-  if(verbose) printf(" Init time: %.6f\n", init_time);
 
   #pragma omp parallel
   {
@@ -370,28 +335,31 @@ int main(int argc, char *argv[])
   }
   double pt = omp_get_wtime();
   double perc_time = pt-init;
-  if(verbose) printf(" Perc time: %.6f\n", perc_time);
 
   if(n_threads > 1) join_clusters(a, b, n, n_threads);
   double join = omp_get_wtime();
   double join_time = join-pt;
-  if(verbose) printf(" Join time: %.6f\n", join_time);
 
   int num = 0, max = 0;
   short rperc = 0, cperc = 0;
   scan_clusters(cpa, n, n_threads, &num, &max, &rperc, &cperc);
-  double scan_time = omp_get_wtime()-join;
-  if(verbose) printf(" Scan time: %.6f\n", scan_time);
-
+  double scan_time = omp_get_wtime()-join; 
   double total_time = omp_get_wtime()-start;
   
   if(verbose) {
+    printf(" Init time: %.6f\n", init_time);
+    printf(" Perc time: %.6f\n", perc_time);
+    printf(" Join time: %.6f\n", join_time);
+    printf(" Scan time: %.6f\n", scan_time);
     printf("Total time: %.6f\n", total_time);
-    printf("\n   Num clusters: %d\n", num);
+    printf("\n");
+    printf("   Num clusters: %d\n", num);
     printf("       Max size: %d\n", max);
     printf("Row percolation: %s\n", rperc ? "True" : "False");
-    printf("Col percolation: %s\n\n", cperc ? "True" : "False");
-  } else {
+    printf("Col percolation: %s\n", cperc ? "True" : "False");
+    printf("\n");
+  }
+  else {
     printf(
       "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f\n",
       n, p, size, n_threads, seed, num, max, rperc, cperc, init_time, perc_time, join_time, scan_time, total_time
