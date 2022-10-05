@@ -20,6 +20,8 @@
 #include "../include/bond.h"
 #include "../include/cluster.h"
 
+#define MASTER 0
+
 /**
  * @return int start index of the region of the lattice allocated to this thread.
  * Allocates n/n_threads rows to the first n_threads-n%n_threads threads and n/n_threads+1 rows to the remaining threads.
@@ -247,6 +249,8 @@ int main(int argc, char *argv[])
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Finalize();
+  if(rank > MASTER) exit(EXIT_SUCCESS); 
 
   Site* a = NULL;
   Bond* b = NULL;
