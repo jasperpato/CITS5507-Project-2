@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
   int n_threads = 1;
 
   if((fname && argc - optind < 1) || (!fname && argc - optind < 2)) {
-    printf("Invalid arguments.\n");
+    printf("Missing arguments.\n");
     exit(errno);
   }
   n = atoi(argv[optind++]);
