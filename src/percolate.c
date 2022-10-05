@@ -28,7 +28,7 @@
  */
 static int start_index(int n, int n_threads, int tid)
 {
-  return tid < n_threads - (n % n_threads) ? n*tid*(n/n_threads) : n*(n_threads-n%n_threads)*(n/n_threads) + n*(tid-(n_threads-n%n_threads))*(n/n_threads+1);
+  return tid < n%n_threads ? n*tid*(n/n_threads+1) : n*(n%n_threads)*(n/n_threads+1) + n*(tid-n%n_threads)*(n/n_threads);
 }
 
 /**
@@ -36,7 +36,8 @@ static int start_index(int n, int n_threads, int tid)
  */
 static int end_index(int n, int n_threads, int tid)
 {
-  return tid < n_threads - (n % n_threads) ? n*(tid+1)*(n/n_threads) : n*(n_threads-n%n_threads)*(n/n_threads) + n*((tid+1)-(n_threads-n%n_threads))*(n/n_threads+1);
+  tid += 1;
+  return start_index(n, n_threads, tid);
 }
 
 /**
