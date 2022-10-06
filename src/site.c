@@ -129,5 +129,5 @@ void print_short_array(short* a, int n)
     ptr += sprintf(ptr, "\n");
   }
   printf("%s", str);
-  free(str);
+  // free(str);
 }
