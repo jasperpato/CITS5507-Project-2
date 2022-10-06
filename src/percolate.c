@@ -349,6 +349,7 @@ int main(int argc, char *argv[])
     }
     // if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
   }
+  printf("What\n");
   MPI_Finalize();
   exit(EXIT_SUCCESS);
 }
