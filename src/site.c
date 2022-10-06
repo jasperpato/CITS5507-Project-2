@@ -112,7 +112,7 @@ void print_short_array(short* a, int n)
   if(!a || n > 40 || n < 2) return;
   int s = num_digits(n-1);
 
-  char *str = malloc(n*n*s * 10 * sizeof(char)); // overestimate
+  char str[n*n*s * 10]; // overestimate
   char *ptr = str;
 
   ptr += sprintf(ptr, "\n ");
@@ -129,5 +129,4 @@ void print_short_array(short* a, int n)
     ptr += sprintf(ptr, "\n");
   }
   printf("%s", str);
-  // free(str);
 }

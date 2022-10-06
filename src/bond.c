@@ -84,7 +84,7 @@ void print_bond(Bond* b, int n)
   if(!b || n > 40 || n < 2) return;
   int s = num_digits(n-1);
 
-  char *str = malloc(n*n*s * 10 * sizeof(char));
+  char str[n*n*s * 10];
   char *ptr = str;
 
   ptr += sprintf(ptr, "\n");
