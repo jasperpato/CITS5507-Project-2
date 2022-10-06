@@ -243,10 +243,8 @@ static void scan_clusters(CPArray* cpa, int n, int n_threads, int *num, int *max
 void print_params(short* a, Bond* b, int n, int n_threads, int num_workers, short site, char* fname, float p, int seed) {
   if(site) print_short_array(a, n);
   else print_bond(b, n);
-  char* f_str = malloc(50 * sizeof(char));
-  sprintf(f_str, "\nP: %.2f\nS: %d", p, seed);
-  printf("\n%s\n%d CPU%s\n%d thread%s\n\nN: %d%s\n\n", site ? "Site" : "Bond", num_workers, num_workers > 1 ? "s" : "", n_threads, n_threads > 1 ? "s" : "", n, fname ? "" : f_str);
-  free(f_str);
+  printf("\n%s\n%d CPU%s\n%d thread%s\n\nN: %d\n", site ? "Site" : "Bond", num_workers, num_workers > 1 ? "s" : "", n_threads, n_threads > 1 ? "s" : "", n);
+  if(!fname) printf("P: %.2f\nS: %d\n", p, seed);
 }
 
 /**
@@ -331,7 +329,7 @@ int main(int argc, char *argv[])
         MPI_Send(b->h, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
       }
     }
-    // if(verbose) print_params(a, b, n, n_threads, num_workers, site, fname, p, seed);
+    if(verbose) print_params(a, b, n, n_threads, num_workers, site, fname, p, seed);
   }
   // if(rank > MASTER && rank < num_workers) {
   //   printf("Rank %d\n", rank);
