@@ -27,17 +27,7 @@ typedef struct Site {
  * @param p probability of occupation. Negative p will skip the occupation step for performance (for bond percolation)
  * @return Site* pointer to site array
  */
-Site* site_array(int, float);
-
-/**
- * @param n assumed lattice size 
- * @return Site* site array scanned from file
- */
-Site* file_site_array(char*, int);
-
-void print_site_array(Site*, int);
-
-// ----- MPI -----
+Site* site_array(short*, int, int, int);
 short* short_array(int, float);
 short *file_short_array(char*, int);
 void print_short_array(short*, int);

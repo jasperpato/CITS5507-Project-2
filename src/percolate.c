@@ -40,11 +40,16 @@ static int end_index(int n, int id, int num_ids)
 }
 
 /**
- * @return int number of nodes allocated to this id
+ * @return int number of sites allocated to this id
  */
 static int get_count(int n, int id, int num_ids)
 {
-  return id < n%num_ids ? n/num_ids+1 : n/num_ids;
+  return id < n%num_ids ? n*(n/num_ids+1) : n*(n/num_ids);
+}
+
+static int max_clusters(int n, int rows)
+{
+  return n*n; // overestimate for now
 }
 
 /**
@@ -272,7 +277,7 @@ int main(int argc, char *argv[])
   // parse optional arguments
   short site = 1, verbose = 0;
   char* fname = NULL;
-  unsigned int seed = time(NULL); // default unique seed
+  unsigned int seed = time(NULL); // only used by master, could be inconsistent between processes
 
   int c;
   while ((c = getopt(argc, argv, "vbsf:r:")) != -1) {
@@ -304,7 +309,7 @@ int main(int argc, char *argv[])
   if(n_threads > n) n_threads = n;
   omp_set_num_threads(n_threads);
   
-  int max_clusters = n % 2 == 0 ? n*n/2 : (n-1)*(n-1)/2+1; // maximum number of size 1 clusters for a given n
+  // int max_clusters = n % 2 == 0 ? n*n/2 : (n-1)*(n-1)/2+1; // no longer relevant
   int num_workers = min(size, ceiling_divide(n, n_threads)); // utilise all threads first, then add nodes
 
   // master initialises lattice and sends to workers
@@ -319,7 +324,9 @@ int main(int argc, char *argv[])
       else b = bond(n, p);
     }
     for(int r = 1; r < num_workers; ++r) {
-      if(site) MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
+      if(site) {
+        MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
+      }
       else {
         MPI_Send(b->v, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
         MPI_Send(b->h, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
@@ -339,7 +346,14 @@ int main(int argc, char *argv[])
       MPI_Recv(b->v, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       MPI_Recv(b->h, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
+  }
+  if(rank < num_workers) {
+    int count = get_count(n, rank, size);
+    int start = start_index(n, rank, size);
+    Site* sites = site_array(a, n, start, count);
+    for(int i = 0; i < count; ++i) {
+      printf("%s%d%s", i%n==0 && i!=0 ? "\n" : "", sites[i].occupied, i+1==count ? "\n" : "");
+    }
   }
   MPI_Finalize();
   exit(EXIT_SUCCESS);
