@@ -84,7 +84,7 @@ void print_bond(Bond* b, int n)
   if(!b || n > 40 || n < 2) return;
   int s = num_digits(n-1);
 
-  char str[n*n*s * 10];
+  char str[n*n*s * 100];
   char *ptr = str;
 
   ptr += sprintf(ptr, "\n");
@@ -107,7 +107,6 @@ void print_bond(Bond* b, int n)
     ptr += sprintf(ptr, "\n");
   }
   printf("%s", str);
-  free(str);
 }
 
 void free_bond(Bond* b) {
