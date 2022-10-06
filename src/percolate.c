@@ -240,6 +240,15 @@ static void scan_clusters(CPArray* cpa, int n, int n_threads, int *num, int *max
   *max = m;
 }
 
+void print_params(short* a, Bond* b, int n, int n_threads, int size, short site, char* fname, float p, int seed) {
+  if(a) print_short_array(a, n);
+  else if(b) print_bond(b, n);
+  char* f_str = malloc(sizeof(char)*30);
+  sprintf(f_str, "\nP: %.2f\nS: %d", p, seed);
+  printf("\n%s\n%d CPU%s\n%d thread%s\n\nN: %d%s\n\n", site ? "Site" : "Bond", size, size > 1 ? "s" : "", n_threads, n_threads > 1 ? "s" : "", n, fname ? "" : f_str);
+  free(f_str);
+}
+
 /**
  * USAGE: ./percolate [-s | -b] [-v] [-r SEED] [[-f LATTICE_FILENAME] | [N PROBABILITY]] [N_THREADS]
  * 
@@ -282,7 +291,7 @@ int main(int argc, char *argv[])
 
   if((fname && argc - optind < 1) || (!fname && argc - optind < 2)) {
     printf("Missing arguments.\n");
-    exit(errno);
+    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); // exit(errno);
   }
   n = atoi(argv[optind++]);
   if(!fname) p = atof(argv[optind++]);
@@ -290,7 +299,7 @@ int main(int argc, char *argv[])
 
   if(n < 1 || n_threads < 1) {
     printf("Invalid arguments.\n");
-    exit(errno);
+    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); // exit(errno);
   }
   // check n_threads
   int max_threads = omp_get_max_threads();
@@ -307,88 +316,18 @@ int main(int argc, char *argv[])
     if(site) {
       if(fname) a = file_short_array(fname, n);
       else a = short_array(n, p);
-      // if(!a) {
-      //   printf("Memory Error.\n");
-      //   exit(errno);
-      // }
-      if(verbose) print_short_array(a, n);
-      for(int r = 1; r < num_workers; ++r) {
-        MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
-      }
+      for(int r = 1; r < num_workers; ++r) MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
     }
     else {
       if(fname) b = file_bond(fname, n);
       else b = bond(n, p);
-      // a = site_array(n, -1.0);
-      // if(!b || !a) {
-      //   printf("Memory error.\n");
-      //   exit(errno);
-      // }
-      if(verbose) print_bond(b, n);
     }
-    // print percolation parameters
-    if(verbose) {
-      printf("\n");
-      printf("%s\n", site ? "Site" : "Bond");
-      printf("%d CPU%s\n",  size, size > 1 ? "s" : "");
-      printf("%d thread%s\n", n_threads, n_threads > 1 ? "s" : "");
-      printf("\n");
-      printf("N: %d\n", n);
-      if(!fname) {
-        printf("P: %.2f\n", p);
-        printf("S: %d\n", seed);
-      }
-      printf("\n");
-    }
+    if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
   }
-  if(rank > MASTER && rank < num_workers) { // change so master does work too
+  if(rank > MASTER && rank < num_workers) {
     a = calloc(n*n, sizeof(short));
     MPI_Recv(a, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    print_short_array(a, n);
-  }
-  if(0) {
-    double init = omp_get_wtime();
-    double init_time = 0; // init-start;
-
-    CPArray* cpa = cluster_array(n_threads, max_clusters);
-
-    #pragma omp parallel
-    {
-      int num = omp_get_thread_num();
-      // percolate(a, b, n, n_threads, &cpa[num], num);
-    }
-    double pt = omp_get_wtime();
-    double perc_time = pt-init;
-
-    // if(n_threads > 1) join_clusters(a, b, n, n_threads);
-    double join = omp_get_wtime();
-    double join_time = join-pt;
-
-    int num = 0, max = 0;
-    short rperc = 0, cperc = 0;
-    scan_clusters(cpa, n, n_threads, &num, &max, &rperc, &cperc);
-    double scan_time = omp_get_wtime()-join; 
-    double total_time = omp_get_wtime()-start;
-    
-    if(verbose) {
-      printf(" Init time: %.6f\n", init_time);
-      printf(" Perc time: %.6f\n", perc_time);
-      printf(" Join time: %.6f\n", join_time);
-      printf(" Scan time: %.6f\n", scan_time);
-      printf("Total time: %.6f\n", total_time);
-      printf("\n");
-      printf("   Num clusters: %d\n", num);
-      printf("       Max size: %d\n", max);
-      printf("Row percolation: %s\n", rperc ? "True" : "False");
-      printf("Col percolation: %s\n", cperc ? "True" : "False");
-      printf("\n");
-    }
-    else {
-      printf(
-        "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f\n",
-        n, p, size, n_threads, seed, num, max, rperc, cperc, init_time, perc_time, join_time, scan_time, total_time
-      );
-    }
+    if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
   }
   MPI_Finalize();
   exit(EXIT_SUCCESS);

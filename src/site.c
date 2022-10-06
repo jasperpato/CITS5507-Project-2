@@ -111,17 +111,23 @@ void print_short_array(short* a, int n)
 {
   if(!a || n > 40 || n < 2) return;
   int s = num_digits(n-1);
-  printf("\n ");
-  for(int i = 0; i < s; ++i) printf(" ");
-  for(int c = 0; c < n; ++c) printf("\033[0;34m %*d\033[0;30m", s, c);
-  printf("\n\n");
+
+  char *str = malloc(n*n*s * 10 * sizeof(char)); // overestimate
+  char *ptr = str;
+
+  ptr += sprintf(ptr, "\n ");
+  for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
+  for(int c = 0; c < n; ++c) ptr += sprintf(ptr, "\033[0;34m %*d\033[0;30m", s, c);
+  ptr += sprintf(ptr, "\n\n");
   for(int r = 0; r < n; ++r) {
-    printf("\033[0;34m%*d \033[0;30m", s, r);
+    ptr += sprintf(ptr, "\033[0;34m%*d \033[0;30m", s, r);
     for(int c = 0; c < n; ++c) {
-      for(int i = 0; i < s; ++i) printf(" ");
-      if(a[r*n+c]) printf("\033[0;31mX\033[0;30m");
-      else printf("O");
+      for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
+      if(a[r*n+c]) ptr += sprintf(ptr, "\033[0;31mX\033[0;30m");
+      else ptr += sprintf(ptr, "O");
     }
-    printf("\n");
+    ptr += sprintf(ptr, "\n");
   }
+  printf("%s", str);
+  free(str);
 }
