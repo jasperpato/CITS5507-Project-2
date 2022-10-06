@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
         MPI_Send(b->h, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
       }
     }
-    if(verbose) print_params(a, b, n, n_threads, num_workers, site, fname, p, seed);
+    // if(verbose) print_params(a, b, n, n_threads, num_workers, site, fname, p, seed);
   }
   // if(rank > MASTER && rank < num_workers) {
   //   printf("Rank %d\n", rank);
