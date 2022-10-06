@@ -241,8 +241,8 @@ static void scan_clusters(CPArray* cpa, int n, int n_threads, int *num, int *max
 }
 
 void print_params(short* a, Bond* b, int n, int n_threads, int num_workers, short site, char* fname, float p, int seed) {
-  if(site) print_short_array(a, n);
-  else print_bond(b, n);
+  // if(site) print_short_array(a, n);
+  // else print_bond(b, n);
   printf("\n%s\n%d CPU%s\n%d thread%s\n\nN: %d\n", site ? "Site" : "Bond", num_workers, num_workers > 1 ? "s" : "", n_threads, n_threads > 1 ? "s" : "", n);
   if(!fname) printf("P: %.2f\nS: %d\n", p, seed);
 }
