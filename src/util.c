@@ -17,3 +17,11 @@ int num_digits(int x) {
   }
   return c;
 }
+
+int min(int a, int b) {
+  return a <= b ? a : b;
+}
+
+int ceiling_divide(int a, int b) {
+  return a / b + (a % b != 0);
+}

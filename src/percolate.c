@@ -11,6 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
+#include <util.h>
 
 #include <omp.h>
 #include <mpi.h>
@@ -21,6 +22,7 @@
 #include "../include/cluster.h"
 
 #define MASTER 0
+#define TAG 5
 
 /**
  * @return int start index of the region of the lattice allocated to this id.
@@ -250,80 +252,81 @@ static void scan_clusters(CPArray* cpa, int n, int n_threads, int *num, int *max
  */
 int main(int argc, char *argv[])
 { 
+  // all processes do command-line argument parsing
+  double start = omp_get_wtime();
+
   int rank, size;
-  printf("OK\n");
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
-  printf("Yo\n");
-  return 0;
+
+  short* a = NULL;
+  Bond* b = NULL;
+
+  // parse optional arguments
+  short site = 1, verbose = 0;
+  char* fname = NULL;
+  unsigned int seed = time(NULL); // default unique seed
+
+  int c;
+  while ((c = getopt(argc, argv, "vbsf:r:")) != -1) {
+    if(c == 'v') verbose = 1;              // silence printing
+    else if(c == 'b') site = 0;            // bond
+    else if(c == 'f') fname = optarg;      // scan lattice from file
+    else if(c == 'r') seed = atoi(optarg); // seed rand with constant
+  }
+  // parse positional arguments
+  int n;
+  float p = -1.0;
+  int n_threads = 1;
+
+  if((fname && argc - optind < 1) || (!fname && argc - optind < 2)) {
+    printf("Missing arguments.\n");
+    exit(errno);
+  }
+  n = atoi(argv[optind++]);
+  if(!fname) p = atof(argv[optind++]);
+  if(argc - optind) n_threads = atoi(argv[optind]);
+
+  if(n < 1 || n_threads < 1) {
+    printf("Invalid arguments.\n");
+    exit(errno);
+  }
+  // check n_threads
+  int max_threads = omp_get_max_threads();
+  if(n_threads > max_threads) n_threads = max_threads;
+  if(n_threads > n) n_threads = n;
+  omp_set_num_threads(n_threads);
   
+  int max_clusters = n % 2 == 0 ? n*n/2 : (n-1)*(n-1)/2+1; // maximum number of size 1 clusters for a given n
+  int num_workers = min(size, ceiling_divide(n, n_threads)); // utilise all threads first, then add nodes
+
+  // master initialises lattice and sends to workers
   if(rank == MASTER) {
-    double start = omp_get_wtime();
-
-    Site* a = NULL;
-    Bond* b = NULL;
-
-    // process optional arguments
-    short site = 1, verbose = 0;
-    char* fname = NULL;
-    unsigned int seed = time(NULL); // default unique seed
-
-    int c;
-    while ((c = getopt(argc, argv, "vbsf:r:")) != -1) {
-      if(c == 'v') verbose = 1;              // silence printing
-      else if(c == 'b') site = 0;            // bond
-      else if(c == 'f') fname = optarg;      // scan lattice from file
-      else if(c == 'r') seed = atoi(optarg); // seed rand with constant
-    }
-
-    // process positional arguments
-    int n;
-    float p = -1.0;
-    int n_threads = 1;
-
-    if((fname && argc - optind < 1) || (!fname && argc - optind < 2)) {
-      printf("Missing arguments.\n");
-      exit(errno);
-    }
-    n = atoi(argv[optind++]);
-    if(!fname) p = atof(argv[optind++]);
-    if(argc - optind) n_threads = atoi(argv[optind]);
-
-    if(n < 1 || n_threads < 1) {
-      printf("Invalid arguments.\n");
-      exit(errno);
-    }
-
-    // initialise lattice
     srand(seed);
     if(site) {
-      if(fname) a = file_site_array(fname, n);
-      else a = site_array(n, p);
-      if(!a) {
-        printf("Memory Error.\n");
-        exit(errno);
+      if(fname) a = file_short_array(fname, n);
+      else a = short_array(n, p);
+      // if(!a) {
+      //   printf("Memory Error.\n");
+      //   exit(errno);
+      // }
+      if(verbose) print_short_array(a, n);
+      for(int r = 1; r < num_workers; ++r) {
+        MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
       }
-      if(verbose) print_site_array(a, n);
     }
     else {
       if(fname) b = file_bond(fname, n);
       else b = bond(n, p);
-      a = site_array(n, -1.0);
-      if(!b || !a) {
-        printf("Memory error.\n");
-        exit(errno);
-      }
+      // a = site_array(n, -1.0);
+      // if(!b || !a) {
+      //   printf("Memory error.\n");
+      //   exit(errno);
+      // }
       if(verbose) print_bond(b, n);
     }
-    int max_threads = omp_get_max_threads();
-    if(n_threads > max_threads) n_threads = max_threads;
-    if(n_threads > n) n_threads = n;
-    omp_set_num_threads(n_threads);
-
-    int max_clusters = n % 2 == 0 ? n*n/2 : (n-1)*(n-1)/2+1; // maximum number of size 1 clusters for a given n
-    CPArray* cpa = cluster_array(n_threads, max_clusters); // each thread keeps an array of its cluster pointers 
-
+    // print percolation parameters
     if(verbose) {
       printf("\n");
       printf("%s\n", site ? "Site" : "Bond");
@@ -337,8 +340,17 @@ int main(int argc, char *argv[])
       }
       printf("\n");
     }
+  }
+  if(rank > MASTER && rank < num_workers) { // change so master does work too
+    a = calloc(n*n, sizeof(short));
+    MPI_Recv(a, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    print_short_array(a, n);
+  }
+  if(0) {
     double init = omp_get_wtime();
-    double init_time = init-start;
+    double init_time = 0; // init-start;
+
+    CPArray* cpa = cluster_array(n_threads, max_clusters);
 
     #pragma omp parallel
     {
