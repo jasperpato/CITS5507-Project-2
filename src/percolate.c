@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
     int start = start_index(n, rank, size);
     Site* sites = site_array(a, n, start, count);
     for(int i = 0; i < count; ++i) {
-      printf("%s%d%s", i%n==0 && i!=0 ? "\n" : "", sites[i].occupied, i+1==count ? "\n" : "");
+      printf("%s%d %d%s", i%n==0 && i!=0 ? "\n" : "", rank, sites[i].occupied, i+1==count ? "\n" : "");
     }
   }
   MPI_Finalize();
