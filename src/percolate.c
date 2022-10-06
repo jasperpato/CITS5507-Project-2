@@ -241,12 +241,12 @@ static void scan_clusters(CPArray* cpa, int n, int n_threads, int *num, int *max
 }
 
 void print_params(short* a, Bond* b, int n, int n_threads, int size, short site, char* fname, float p, int seed) {
-  if(a) print_short_array(a, n);
-  else if(b) print_bond(b, n);
-  char* f_str = malloc(30 * sizeof(char));
+  if(site) print_short_array(a, n);
+  else print_bond(b, n);
+  char* f_str = malloc(50 * sizeof(char));
   sprintf(f_str, "\nP: %.2f\nS: %d", p, seed);
   printf("\n%s\n%d CPU%s\n%d thread%s\n\nN: %d%s\n\n", site ? "Site" : "Bond", size, size > 1 ? "s" : "", n_threads, n_threads > 1 ? "s" : "", n, fname ? "" : f_str);
-  // free(f_str);
+  free(f_str);
 }
 
 /**
@@ -316,17 +316,32 @@ int main(int argc, char *argv[])
     if(site) {
       if(fname) a = file_short_array(fname, n);
       else a = short_array(n, p);
-      for(int r = 1; r < num_workers; ++r) MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
     }
     else {
       if(fname) b = file_bond(fname, n);
       else b = bond(n, p);
     }
+    for(int r = 1; r < num_workers; ++r) {
+      if(site) MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
+      else {
+        MPI_Send(b->v, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
+        MPI_Send(b->h, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
+      }
+    }
     if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
   }
   if(rank > MASTER && rank < num_workers) {
-    a = calloc(n*n, sizeof(short));
-    MPI_Recv(a, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    if(site) {
+      a = calloc(n*n, sizeof(short));
+      MPI_Recv(a, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+    else {
+      b = calloc(1, sizeof(Bond));
+      b->v = calloc(n*n, sizeof(short));
+      b->h = calloc(n*n, sizeof(short));
+      MPI_Recv(b->v, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(b->h, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
     if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
   }
   MPI_Finalize();
