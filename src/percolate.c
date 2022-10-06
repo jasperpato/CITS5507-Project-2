@@ -36,8 +36,7 @@ static int start_index(int n, int id, int num_ids)
  */
 static int end_index(int n, int id, int num_ids)
 {
-  id += 1;
-  return start_index(n, id, num_ids);
+  return id < n%num_ids ? n*(id+1)*(n/num_ids+1) : n*(n%num_ids)*(n/num_ids+1) + n*(id+1-n%num_ids)*(n/num_ids);
 }
 
 /**
@@ -74,8 +73,8 @@ static short has_neighbours(Bond* b, int n, Site* s)
  */
 static short on_border(int n, int idx, int n_threads) {
   for(int i = 0; i < n_threads; ++i) {
-    int start = start_index(n, n_threads, i); // region boundaries
-    int end = end_index(n, n_threads, i);
+    int start = start_index(n, i, n_threads); // region boundaries
+    int end = end_index(n, i, n_threads);
     if((idx >= start && idx < start+n) || (idx >= end-n && idx < end)) return 1;
   }
   return 0;
@@ -159,8 +158,8 @@ static void DFS(Site* a, Bond* b, int n, int n_threads, Stack* st, int start, in
  */
 static void percolate(Site* a, Bond* b, int n, int n_threads, CPArray* cpa, short tid)
 {
-  int start = start_index(n, n_threads, tid);
-  int end = end_index(n, n_threads, tid);
+  int start = start_index(n, tid, n_threads);
+  int end = end_index(n, tid, n_threads);
   if(tid+1 == n_threads) end = n*n; // last region may be extended to reach end of lattice
   Stack* st = stack(n*n);
   for(int i = start; i < end; ++i) {
@@ -185,7 +184,7 @@ static void percolate(Site* a, Bond* b, int n, int n_threads, CPArray* cpa, shor
  */
 static void join_clusters(Site* a, Bond* b, int n, int n_threads) {
   for(int i = 0; i < n_threads; ++i) {
-    int row_end = end_index(n, n_threads, i);
+    int row_end = end_index(n, i, n_threads);
     int row_start = row_end-n;
     for(int i = row_start; i < row_end; ++i) { // loop along bottom row of region
       Site *s = &a[i];
@@ -250,133 +249,135 @@ static void scan_clusters(CPArray* cpa, int n, int n_threads, int *num, int *max
  * [N_THREADS] number of threads to utilise
  */
 int main(int argc, char *argv[])
-{
-  double start = omp_get_wtime();
-  
+{ 
   int rank, size;
-
+  printf("OK\n");
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Finalize();
-  if(rank > MASTER) exit(EXIT_SUCCESS); 
-
-  Site* a = NULL;
-  Bond* b = NULL;
-
-  // process optional arguments
-  short site = 1, verbose = 0;
-  char* fname = NULL;
-  unsigned int seed = time(NULL); // default unique seed
-
-  int c;
-  while ((c = getopt(argc, argv, "vbsf:r:")) != -1) {
-    if(c == 'v') verbose = 1;              // silence printing
-    else if(c == 'b') site = 0;            // bond
-    else if(c == 'f') fname = optarg;      // scan lattice from file
-    else if(c == 'r') seed = atoi(optarg); // seed rand with constant
-  }
-
-  // process positional arguments
-  int n;
-  float p = -1.0;
-  int n_threads = 1;
-
-  if((fname && argc - optind < 1) || (!fname && argc - optind < 2)) {
-    printf("Missing arguments.\n");
-    exit(errno);
-  }
-  n = atoi(argv[optind++]);
-  if(!fname) p = atof(argv[optind++]);
-  if(argc - optind) n_threads = atoi(argv[optind]);
-
-  if(n < 1 || n_threads < 1) {
-    printf("Invalid arguments.\n");
-    exit(errno);
-  }
-
-  // initialise lattice
-  srand(seed);
-  if(site) {
-    if(fname) a = file_site_array(fname, n);
-    else a = site_array(n, p);
-    if(!a) {
-      printf("Memory Error.\n");
-      exit(errno);
-    }
-    if(verbose) print_site_array(a, n);
-  }
-  else {
-    if(fname) b = file_bond(fname, n);
-    else b = bond(n, p);
-    a = site_array(n, -1.0);
-    if(!b || !a) {
-      printf("Memory error.\n");
-      exit(errno);
-    }
-    if(verbose) print_bond(b, n);
-  }
-
-  int max_threads = omp_get_max_threads();
-  if(n_threads > max_threads) n_threads = max_threads;
-  if(n_threads > n) n_threads = n;
-  omp_set_num_threads(n_threads);
-
-  int max_clusters = n % 2 == 0 ? n*n/2 : (n-1)*(n-1)/2+1; // maximum number of size 1 clusters for a given n
-  CPArray* cpa = cluster_array(n_threads, max_clusters); // each thread keeps an array of its cluster pointers 
-
-  if(verbose) {
-    printf("\n");
-    printf("%s\n", site ? "Site" : "Bond");
-    printf("%d CPU%s\n",  size, size > 1 ? "s" : "");
-    printf("%d thread%s\n", n_threads, n_threads > 1 ? "s" : "");
-    printf("\n");
-    printf("N: %d\n", n);
-    if(!fname) {
-      printf("P: %.2f\n", p);
-      printf("S: %d\n", seed);
-    }
-    printf("\n");
-  }
-  double init = omp_get_wtime();
-  double init_time = init-start;
-
-  #pragma omp parallel
-  {
-    int num = omp_get_thread_num();
-    percolate(a, b, n, n_threads, &cpa[num], num);
-  }
-  double pt = omp_get_wtime();
-  double perc_time = pt-init;
-
-  if(n_threads > 1) join_clusters(a, b, n, n_threads);
-  double join = omp_get_wtime();
-  double join_time = join-pt;
-
-  int num = 0, max = 0;
-  short rperc = 0, cperc = 0;
-  scan_clusters(cpa, n, n_threads, &num, &max, &rperc, &cperc);
-  double scan_time = omp_get_wtime()-join; 
-  double total_time = omp_get_wtime()-start;
+  printf("Yo\n");
+  return 0;
   
-  if(verbose) {
-    printf(" Init time: %.6f\n", init_time);
-    printf(" Perc time: %.6f\n", perc_time);
-    printf(" Join time: %.6f\n", join_time);
-    printf(" Scan time: %.6f\n", scan_time);
-    printf("Total time: %.6f\n", total_time);
-    printf("\n");
-    printf("   Num clusters: %d\n", num);
-    printf("       Max size: %d\n", max);
-    printf("Row percolation: %s\n", rperc ? "True" : "False");
-    printf("Col percolation: %s\n", cperc ? "True" : "False");
-    printf("\n");
+  if(rank == MASTER) {
+    double start = omp_get_wtime();
+
+    Site* a = NULL;
+    Bond* b = NULL;
+
+    // process optional arguments
+    short site = 1, verbose = 0;
+    char* fname = NULL;
+    unsigned int seed = time(NULL); // default unique seed
+
+    int c;
+    while ((c = getopt(argc, argv, "vbsf:r:")) != -1) {
+      if(c == 'v') verbose = 1;              // silence printing
+      else if(c == 'b') site = 0;            // bond
+      else if(c == 'f') fname = optarg;      // scan lattice from file
+      else if(c == 'r') seed = atoi(optarg); // seed rand with constant
+    }
+
+    // process positional arguments
+    int n;
+    float p = -1.0;
+    int n_threads = 1;
+
+    if((fname && argc - optind < 1) || (!fname && argc - optind < 2)) {
+      printf("Missing arguments.\n");
+      exit(errno);
+    }
+    n = atoi(argv[optind++]);
+    if(!fname) p = atof(argv[optind++]);
+    if(argc - optind) n_threads = atoi(argv[optind]);
+
+    if(n < 1 || n_threads < 1) {
+      printf("Invalid arguments.\n");
+      exit(errno);
+    }
+
+    // initialise lattice
+    srand(seed);
+    if(site) {
+      if(fname) a = file_site_array(fname, n);
+      else a = site_array(n, p);
+      if(!a) {
+        printf("Memory Error.\n");
+        exit(errno);
+      }
+      if(verbose) print_site_array(a, n);
+    }
+    else {
+      if(fname) b = file_bond(fname, n);
+      else b = bond(n, p);
+      a = site_array(n, -1.0);
+      if(!b || !a) {
+        printf("Memory error.\n");
+        exit(errno);
+      }
+      if(verbose) print_bond(b, n);
+    }
+    int max_threads = omp_get_max_threads();
+    if(n_threads > max_threads) n_threads = max_threads;
+    if(n_threads > n) n_threads = n;
+    omp_set_num_threads(n_threads);
+
+    int max_clusters = n % 2 == 0 ? n*n/2 : (n-1)*(n-1)/2+1; // maximum number of size 1 clusters for a given n
+    CPArray* cpa = cluster_array(n_threads, max_clusters); // each thread keeps an array of its cluster pointers 
+
+    if(verbose) {
+      printf("\n");
+      printf("%s\n", site ? "Site" : "Bond");
+      printf("%d CPU%s\n",  size, size > 1 ? "s" : "");
+      printf("%d thread%s\n", n_threads, n_threads > 1 ? "s" : "");
+      printf("\n");
+      printf("N: %d\n", n);
+      if(!fname) {
+        printf("P: %.2f\n", p);
+        printf("S: %d\n", seed);
+      }
+      printf("\n");
+    }
+    double init = omp_get_wtime();
+    double init_time = init-start;
+
+    #pragma omp parallel
+    {
+      int num = omp_get_thread_num();
+      percolate(a, b, n, n_threads, &cpa[num], num);
+    }
+    double pt = omp_get_wtime();
+    double perc_time = pt-init;
+
+    if(n_threads > 1) join_clusters(a, b, n, n_threads);
+    double join = omp_get_wtime();
+    double join_time = join-pt;
+
+    int num = 0, max = 0;
+    short rperc = 0, cperc = 0;
+    scan_clusters(cpa, n, n_threads, &num, &max, &rperc, &cperc);
+    double scan_time = omp_get_wtime()-join; 
+    double total_time = omp_get_wtime()-start;
+    
+    if(verbose) {
+      printf(" Init time: %.6f\n", init_time);
+      printf(" Perc time: %.6f\n", perc_time);
+      printf(" Join time: %.6f\n", join_time);
+      printf(" Scan time: %.6f\n", scan_time);
+      printf("Total time: %.6f\n", total_time);
+      printf("\n");
+      printf("   Num clusters: %d\n", num);
+      printf("       Max size: %d\n", max);
+      printf("Row percolation: %s\n", rperc ? "True" : "False");
+      printf("Col percolation: %s\n", cperc ? "True" : "False");
+      printf("\n");
+    }
+    else {
+      printf(
+        "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f\n",
+        n, p, size, n_threads, seed, num, max, rperc, cperc, init_time, perc_time, join_time, scan_time, total_time
+      );
+    }
   }
-  else {
-    printf(
-      "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f\n",
-      n, p, size, n_threads, seed, num, max, rperc, cperc, init_time, perc_time, join_time, scan_time, total_time
-    );
-  }
+  MPI_Finalize();
   exit(EXIT_SUCCESS);
 }
