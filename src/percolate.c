@@ -332,24 +332,22 @@ int main(int argc, char *argv[])
       }
     }
     if(verbose) print_params(a, b, n, n_threads, num_workers, site, fname, p, seed);
-    printf("Hmm\n");
   }
-  if(rank > MASTER && rank < num_workers) {
-    printf("Rank %d\n", rank);
-    if(site) {
-      a = calloc(n*n, sizeof(short));
-      MPI_Recv(a, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-    else {
-      b = calloc(1, sizeof(Bond));
-      b->v = calloc(n*n, sizeof(short));
-      b->h = calloc(n*n, sizeof(short));
-      MPI_Recv(b->v, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      MPI_Recv(b->h, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-    // if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
-  }
-  printf("What\n");
+  // if(rank > MASTER && rank < num_workers) {
+  //   printf("Rank %d\n", rank);
+  //   if(site) {
+  //     a = calloc(n*n, sizeof(short));
+  //     MPI_Recv(a, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  //   }
+  //   else {
+  //     b = calloc(1, sizeof(Bond));
+  //     b->v = calloc(n*n, sizeof(short));
+  //     b->h = calloc(n*n, sizeof(short));
+  //     MPI_Recv(b->v, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  //     MPI_Recv(b->h, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  //   }
+  //   // if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
+  // }
   MPI_Finalize();
   exit(EXIT_SUCCESS);
 }
