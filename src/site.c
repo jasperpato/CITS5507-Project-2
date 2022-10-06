@@ -58,7 +58,7 @@ Site* file_site_array(char* filename, int n) {
 
 void print_site_array(Site* a, int n)
 {
-  if(!a || n > 40 || n < 2) return;
+  if(!a || n > PRINT_CUTOFF || n < 2) return;
   int s = num_digits(n-1);
   printf("\n ");
   for(int i = 0; i < s; ++i) printf(" ");
@@ -112,7 +112,7 @@ void print_short_array(short* a, int n)
   if(!a || n > 40 || n < 2) return;
   int s = num_digits(n-1);
 
-  char str[n*n*s * 100]; // overestimate
+  char str[n*n*s * 20 + 100]; // overestimate
   char *ptr = str;
 
   ptr += sprintf(ptr, "\n ");

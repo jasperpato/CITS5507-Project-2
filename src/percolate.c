@@ -16,13 +16,11 @@
 #include <omp.h>
 #include <mpi.h>
 
+#include "../include/constant.h"
 #include "../include/stack.h"
 #include "../include/site.h"
 #include "../include/bond.h"
 #include "../include/cluster.h"
-
-#define MASTER 0
-#define TAG 5
 
 /**
  * @return int start index of the region of the lattice allocated to this id.

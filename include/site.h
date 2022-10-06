@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <mpi.h>
 
+#include "./constant.h"
 #include "./util.h"
 #include "./cluster.h"
 

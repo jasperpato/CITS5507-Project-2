@@ -81,10 +81,10 @@ Bond* file_bond(char* filename, int n)
 
 void print_bond(Bond* b, int n)
 {
-  if(!b || n > 40 || n < 2) return;
+  if(!b || n > PRINT_CUTOFF || n < 2) return;
   int s = num_digits(n-1);
 
-  char str[n*n*s * 100];
+  char str[n*n*s * 20 + 100]; // overestimate
   char *ptr = str;
 
   ptr += sprintf(ptr, "\n");
