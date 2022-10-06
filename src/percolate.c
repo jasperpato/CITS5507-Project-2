@@ -322,13 +322,17 @@ int main(int argc, char *argv[])
       else b = bond(n, p);
     }
     for(int r = 1; r < num_workers; ++r) {
-      if(site) MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
+      if(site) {
+        MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
+        printf("Sent\n");
+      }
       else {
         MPI_Send(b->v, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
         MPI_Send(b->h, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
       }
     }
     if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
+    printf("Hmm\n");
   }
   if(rank > MASTER && rank < num_workers) {
     printf("Rank %d\n", rank);
