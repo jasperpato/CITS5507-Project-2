@@ -241,8 +241,9 @@ static void scan_clusters(CPArray* cpa, int n, int n_threads, int *num, int *max
 void print_params(short* a, Bond* b, int n, int n_threads, int num_workers, short site, char* fname, float p, int seed) {
   if(site) print_short_array(a, n);
   else print_bond(b, n);
-  printf("\n%s\n%d CPU%s\n%d thread%s\n\nN: %d\n", site ? "Site" : "Bond", num_workers, num_workers > 1 ? "s" : "", n_threads, n_threads > 1 ? "s" : "", n);
-  if(!fname) printf("P: %.2f\nS: %d\n", p, seed);
+  char str[50];
+  sprintf(str, "P: %.2f\nS: %d\n", p, seed);
+  printf("\n%s\n%d CPU%s\n%d thread%s\n\nN: %d\n%s\n", site ? "Site" : "Bond", num_workers, num_workers > 1 ? "s" : "", n_threads, n_threads > 1 ? "s" : "", n, fname ? "" : str);
 }
 
 /**
@@ -318,10 +319,7 @@ int main(int argc, char *argv[])
       else b = bond(n, p);
     }
     for(int r = 1; r < num_workers; ++r) {
-      if(site) {
-        MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
-        printf("Sent\n");
-      }
+      if(site) MPI_Send(a, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
       else {
         MPI_Send(b->v, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
         MPI_Send(b->h, n*n, MPI_SHORT, r, TAG, MPI_COMM_WORLD);
@@ -330,7 +328,6 @@ int main(int argc, char *argv[])
     if(verbose) print_params(a, b, n, n_threads, num_workers, site, fname, p, seed);
   }
   if(rank > MASTER && rank < num_workers) {
-    printf("Rank %d\n", rank);
     if(site) {
       a = calloc(n*n, sizeof(short));
       MPI_Recv(a, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -342,7 +339,7 @@ int main(int argc, char *argv[])
       MPI_Recv(b->v, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       MPI_Recv(b->h, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    // if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
+    if(verbose) print_params(a, b, n, n_threads, size, site, fname, p, seed);
   }
   MPI_Finalize();
   exit(EXIT_SUCCESS);
