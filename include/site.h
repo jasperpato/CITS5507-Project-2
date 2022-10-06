@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <mpi.h>
 
 #include "./util.h"
 #include "./cluster.h"
@@ -35,4 +36,8 @@ Site* file_site_array(char*, int);
 
 void print_site_array(Site*, int);
 
+// ----- MPI -----
+short* short_array(int, float);
+short *file_short_array(char*, int);
+void print_short_array(short*, int);
 #endif

@@ -10,6 +10,7 @@
 #define CLUSTER_H
 
 #include <stdlib.h>
+#include <mpi.h>
 
 typedef struct Cluster {
   short *rows, *cols;

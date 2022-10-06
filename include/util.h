@@ -13,5 +13,7 @@
  * @return int number of digits in integer x, required for printing lattices
  */
 int num_digits(int);
+int min(int, int);
+int ceiling_divide(int, int);
 
 #endif
