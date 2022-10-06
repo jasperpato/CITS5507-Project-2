@@ -355,12 +355,12 @@ int main(int argc, char *argv[])
     #pragma omp parallel
     {
       int num = omp_get_thread_num();
-      percolate(a, b, n, n_threads, &cpa[num], num);
+      // percolate(a, b, n, n_threads, &cpa[num], num);
     }
     double pt = omp_get_wtime();
     double perc_time = pt-init;
 
-    if(n_threads > 1) join_clusters(a, b, n, n_threads);
+    // if(n_threads > 1) join_clusters(a, b, n, n_threads);
     double join = omp_get_wtime();
     double join_time = join-pt;
 

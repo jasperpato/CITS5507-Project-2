@@ -86,8 +86,8 @@ short* short_array(int n, float p)
   return sites;
 }
 
-Site* file_short_array(char* filename, int n) {
-  Site* s = calloc(n*n, sizeof(short));
+short* file_short_array(char* filename, int n) {
+  short* s = calloc(n*n, sizeof(short));
   if(!s) return NULL;
   int ch, r = 0, c = 0;
   FILE* f = fopen(filename, "r");
