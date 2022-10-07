@@ -153,8 +153,8 @@ int main(int argc, char *argv[])
     }
   }
   if(rank < num_workers) {
-    int process_start_index = get_start_index(n, n, rank, size);
-    int process_num_rows = get_num_rows(n, rank, size);
+    int process_start_index = get_start_index(n, n, rank, num_workers);
+    int process_num_rows = get_num_rows(n, rank, num_workers);
 
     int num_thread_workers = min(n_threads, process_num_rows);
 
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
     #pragma omp parallel
     {
       int tid = omp_get_thread_num();
-      int thread_start_index = process_start_index + get_start_index(n, process_num_rows, tid, num_thread_workers);
+      int thread_start_index = get_start_index(n, process_num_rows, tid, num_thread_workers);
       int thread_num_rows = get_num_rows(process_num_rows, tid, num_thread_workers);
       if(tid < num_thread_workers) {
         printf("Rank %d thread %d start index %d num rows %d\n", rank, tid, thread_start_index, thread_num_rows);
