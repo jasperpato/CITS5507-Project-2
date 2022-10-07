@@ -8,14 +8,14 @@
 
 #include "../include/site.h"
 
-Site* site_array(short* a, int n, int start_row, int num_rows)
+Site* site_array(short* a, int n, int start_index, int end_index)
 {
-  Site* sites = calloc(n*num_rows, sizeof(Site));
+  Site* sites = calloc(end_index-start_index, sizeof(Site));
   if(!sites) return NULL;
-  for(int i = 0; i < num_rows*n; ++i) {
-    sites[i].r = (start_row*n+i)/n;
-    sites[i].c = (start_row*n+i)%n;
-    if(a && a[start_row*n+i]) sites[i].occupied = 1;
+  for(int i = start_index; i < end_index; ++i) {
+    sites[i].r = i/n;
+    sites[i].c = i%n;
+    if(a && a[i]) sites[i].occupied = 1;
   }
   return sites;
 }
