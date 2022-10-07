@@ -245,10 +245,11 @@ int main(int argc, char *argv[])
       int thread_n_rows = get_n_rows(process_n_rows, tid, n_thread_workers);
       if(tid < n_thread_workers) {
         percolate(sites, b, n, thread_start_index, tid, n_thread_workers, thread_n_rows, process_n_rows, thread_clusters[tid], &n_thread_clusters[tid]);
+        printf("Rank %d thread %d num clusters %d\n", rank, tid, n_thread_clusters[tid]);
+        for(int i = 0; i < n_thread_clusters[tid]; ++i) {
+          printf("Rank %d thread %d cluster %d size %d\n", rank, tid, thread_clusters[tid][i]->id, thread_clusters[tid][i]->size);
+        } 
       }
-      for(int i = 0; i < n_thread_clusters[tid]; ++i) {
-        printf("Rank %d thread %d cluster %d size %d\n", rank, tid, thread_clusters[tid][i]->id, thread_clusters[tid][i]->size);
-      } 
     }
     // join clusters
     // send data to master
