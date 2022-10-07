@@ -134,7 +134,7 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int start_index, int
 }
 
 void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short site, char* fname, float p, int seed) {
-  if(site) print_short_array(a, n);
+  if(site) print_short_array(a, n, n);
   else print_bond(b, n);
   char str[50];
   sprintf(str, "P: %.2f\nS: %d\n", p, seed);
@@ -234,6 +234,8 @@ int main(int argc, char *argv[])
     Site* sites = site_array(a, n, process_start_index, process_end_index);
     if(site) free(a); // occupation info now stored in sites
 
+    print_site_array(sites, n, process_n_rows);
+
     Cluster*** thread_clusters = calloc(n_thread_workers, sizeof(Cluster**));
     for(int i = 0; i < n_thread_workers; ++i) thread_clusters[i] = calloc(max_clusters(n, process_n_rows), sizeof(Cluster*));
     int* n_thread_clusters = calloc(n_thread_workers, sizeof(int));
@@ -245,9 +247,9 @@ int main(int argc, char *argv[])
       int thread_n_rows = get_n_rows(process_n_rows, tid, n_thread_workers);
       if(tid < n_thread_workers) {
         percolate(sites, b, n, tid, thread_n_rows, process_n_rows, thread_start_index, n_thread_workers, thread_clusters[tid], &n_thread_clusters[tid]);
-        printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, thread_n_rows, n_thread_clusters[tid]);
+        // printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, thread_n_rows, n_thread_clusters[tid]);
         for(int i = 0; i < n_thread_clusters[tid]; ++i) {
-          printf("Rank %d thread %d cluster %d size %d\n", rank, tid, thread_clusters[tid][i]->id, thread_clusters[tid][i]->size);
+          // printf("Rank %d thread %d cluster %d size %d\n", rank, tid, thread_clusters[tid][i]->id, thread_clusters[tid][i]->size);
         } 
       }
     }

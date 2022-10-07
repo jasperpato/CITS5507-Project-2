@@ -30,5 +30,6 @@ typedef struct Site {
 Site* site_array(short*, int, int, int);
 short* short_array(int, float);
 short *file_short_array(char*, int);
-void print_short_array(short*, int);
+void print_short_array(short*, int, int);
+void print_site_array(Site*, int, int);
 #endif

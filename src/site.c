@@ -50,9 +50,9 @@ short* file_short_array(char* filename, int n) {
   return s;
 }
 
-void print_short_array(short* a, int n)
+void print_short_array(short* a, int n, int num_rows)
 {
-  if(!a || n > 40 || n < 2) return;
+  if(!a || n > PRINT_CUTOFF || n < 2) return;
   int s = num_digits(n-1);
 
   char str[n*n*s * 20 + 100]; // overestimate
@@ -62,11 +62,35 @@ void print_short_array(short* a, int n)
   for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
   for(int c = 0; c < n; ++c) ptr += sprintf(ptr, "\033[0;34m %*d\033[0;30m", s, c);
   ptr += sprintf(ptr, "\n\n");
-  for(int r = 0; r < n; ++r) {
+  for(int r = 0; r < num_rows; ++r) {
     ptr += sprintf(ptr, "\033[0;34m%*d \033[0;30m", s, r);
     for(int c = 0; c < n; ++c) {
       for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
       if(a[r*n+c]) ptr += sprintf(ptr, "\033[0;31mX\033[0;30m");
+      else ptr += sprintf(ptr, "O");
+    }
+    ptr += sprintf(ptr, "\n");
+  }
+  printf("%s", str);
+}
+
+void print_site_array(Site* a, int n, int num_rows)
+{
+  if(!a || n > PRINT_CUTOFF || n < 2) return;
+  int s = num_digits(n-1);
+
+  char str[n*n*s * 20 + 100]; // overestimate
+  char *ptr = str;
+
+  ptr += sprintf(ptr, "\n ");
+  for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
+  for(int c = 0; c < n; ++c) ptr += sprintf(ptr, "\033[0;34m %*d\033[0;30m", s, c);
+  ptr += sprintf(ptr, "\n\n");
+  for(int r = 0; r < num_rows; ++r) {
+    ptr += sprintf(ptr, "\033[0;34m%*d \033[0;30m", s, r);
+    for(int c = 0; c < n; ++c) {
+      for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
+      if(a[r*n+c].occupied) ptr += sprintf(ptr, "\033[0;31mX\033[0;30m");
       else ptr += sprintf(ptr, "O");
     }
     ptr += sprintf(ptr, "\n");
