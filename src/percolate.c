@@ -235,6 +235,7 @@ int main(int argc, char *argv[])
     if(site) free(a); // occupation info now stored in sites
 
     print_site_array(sites, n, process_n_rows);
+    printf("-\n");
 
     Cluster*** thread_clusters = calloc(n_thread_workers, sizeof(Cluster**));
     for(int i = 0; i < n_thread_workers; ++i) thread_clusters[i] = calloc(max_clusters(n, process_n_rows), sizeof(Cluster*));
@@ -250,6 +251,7 @@ int main(int argc, char *argv[])
         // printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, thread_n_rows, n_thread_clusters[tid]);
         for(int i = 0; i < n_thread_clusters[tid]; ++i) {
           // printf("Rank %d thread %d cluster %d size %d\n", rank, tid, thread_clusters[tid][i]->id, thread_clusters[tid][i]->size);
+          ;
         } 
       }
     }

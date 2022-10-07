@@ -54,46 +54,36 @@ void print_short_array(short* a, int n, int num_rows)
 {
   if(!a || n > PRINT_CUTOFF || n < 2) return;
   int s = num_digits(n-1);
-
-  char str[n*n*s * 20 + 100]; // overestimate
-  char *ptr = str;
-
-  ptr += sprintf(ptr, "\n ");
-  for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
-  for(int c = 0; c < n; ++c) ptr += sprintf(ptr, "\033[0;34m %*d\033[0;30m", s, c);
-  ptr += sprintf(ptr, "\n\n");
+  printf("\n ");
+  for(int i = 0; i < s; ++i) printf(" ");
+  for(int c = 0; c < n; ++c) printf("\033[0;34m %*d\033[0;30m", s, c);
+  printf("\n\n");
   for(int r = 0; r < num_rows; ++r) {
-    ptr += sprintf(ptr, "\033[0;34m%*d \033[0;30m", s, r);
+    printf("\033[0;34m%*d \033[0;30m", s, r);
     for(int c = 0; c < n; ++c) {
-      for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
-      if(a[r*n+c]) ptr += sprintf(ptr, "\033[0;31mX\033[0;30m");
-      else ptr += sprintf(ptr, "O");
+      for(int i = 0; i < s; ++i) printf(" ");
+      if(a[r*n+c]) printf("\033[0;31mX\033[0;30m");
+      else printf("O");
     }
-    ptr += sprintf(ptr, "\n");
+    printf("\n");
   }
-  printf("%s", str);
 }
 
 void print_site_array(Site* a, int n, int num_rows)
 {
   if(!a || n > PRINT_CUTOFF || n < 2) return;
   int s = num_digits(n-1);
-
-  char str[n*n*s * 20 + 100]; // overestimate
-  char *ptr = str;
-
-  ptr += sprintf(ptr, "\n ");
-  for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
-  for(int c = 0; c < n; ++c) ptr += sprintf(ptr, " %*d", s, c);
-  ptr += sprintf(ptr, "\n\n");
+  printf("\n ");
+  for(int i = 0; i < s; ++i) printf(" ");
+  for(int c = 0; c < n; ++c) printf(" %*d", s, c);
+  printf("\n\n");
   for(int r = 0; r < num_rows; ++r) {
-    ptr += sprintf(ptr, "%*d ", s, r);
+    printf("%*d ", s, r);
     for(int c = 0; c < n; ++c) {
-      for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
-      if(a[r*n+c].occupied) ptr += sprintf(ptr, "X");
-      else ptr += sprintf(ptr, "O");
+      for(int i = 0; i < s; ++i) printf(" ");
+      if(a[r*n+c].occupied) printf("X");
+      else printf("O");
     }
-    ptr += sprintf(ptr, "\n");
+    printf("\n");
   }
-  printf("%s", str);
 }
