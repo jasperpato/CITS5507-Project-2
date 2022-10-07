@@ -84,13 +84,13 @@ void print_site_array(Site* a, int n, int num_rows)
 
   ptr += sprintf(ptr, "\n ");
   for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
-  for(int c = 0; c < n; ++c) ptr += sprintf(ptr, "\033[0;34m %*d\033[0;30m", s, c);
+  for(int c = 0; c < n; ++c) ptr += sprintf(ptr, " %*d", s, c);
   ptr += sprintf(ptr, "\n\n");
   for(int r = 0; r < num_rows; ++r) {
-    ptr += sprintf(ptr, "\033[0;34m%*d \033[0;30m", s, r);
+    ptr += sprintf(ptr, "%*d ", s, r);
     for(int c = 0; c < n; ++c) {
       for(int i = 0; i < s; ++i) ptr += sprintf(ptr, " ");
-      if(a[r*n+c].occupied) ptr += sprintf(ptr, "\033[0;31mX\033[0;30m");
+      if(a[r*n+c].occupied) ptr += sprintf(ptr, "X");
       else ptr += sprintf(ptr, "O");
     }
     ptr += sprintf(ptr, "\n");
