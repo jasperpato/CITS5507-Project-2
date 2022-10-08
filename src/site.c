@@ -50,7 +50,7 @@ short* file_short_array(char* filename, int n) {
   return s;
 }
 
-void print_short_array(short* a, int n, int num_rows)
+void print_short_array(short* a, int n)
 {
   if(!a || n > PRINT_CUTOFF || n < 2) return;
   int s = num_digits(n-1);
@@ -58,7 +58,7 @@ void print_short_array(short* a, int n, int num_rows)
   for(int i = 0; i < s; ++i) printf(" ");
   for(int c = 0; c < n; ++c) printf("\033[0;34m %*d\033[0;30m", s, c);
   printf("\n\n");
-  for(int r = 0; r < num_rows; ++r) {
+  for(int r = 0; r < n; ++r) {
     printf("\033[0;34m%*d \033[0;30m", s, r);
     for(int c = 0; c < n; ++c) {
       for(int i = 0; i < s; ++i) printf(" ");
@@ -69,7 +69,7 @@ void print_short_array(short* a, int n, int num_rows)
   }
 }
 
-void print_site_array(Site* a, int n, int num_rows)
+void print_site_array(Site* a, int n)
 {
   if(!a || n > PRINT_CUTOFF || n < 2) return;
   int s = num_digits(n-1);
@@ -77,7 +77,7 @@ void print_site_array(Site* a, int n, int num_rows)
   for(int i = 0; i < s; ++i) printf(" ");
   for(int c = 0; c < n; ++c) printf("\033[0;34m %*d\033[0;30m", s, c);
   printf("\n\n");
-  for(int r = 0; r < num_rows; ++r) {
+  for(int r = 0; r < n; ++r) {
     printf("\033[0;34m%*d \033[0;30m", s, r);
     for(int c = 0; c < n; ++c) {
       for(int i = 0; i < s; ++i) printf(" ");

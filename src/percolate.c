@@ -134,7 +134,7 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int n_t
 }
 
 void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short site, char* fname, float p, int seed) {
-  if(site) print_short_array(a, n, n);
+  if(site) print_short_array(a, n);
   else print_bond(b, n);
   char str[50];
   sprintf(str, "P: %.2f\nS: %d\n", p, seed);
