@@ -27,7 +27,7 @@ typedef struct Site {
  * @param p probability of occupation. Negative p will skip the occupation step for performance (for bond percolation)
  * @return Site* pointer to site array
  */
-Site* site_array(short*, int, int, int);
+Site* site_array(short*, int);
 short* short_array(int, float);
 short *file_short_array(char*, int);
 void print_short_array(short*, int, int);

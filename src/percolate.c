@@ -22,7 +22,7 @@
 #include "../include/bond.h"
 #include "../include/cluster.h"
 
-static int get_start_index(int n, int n_rows, int id, int n_ids)
+static int get_start(int n, int n_rows, int id, int n_ids)
 {
   return id < n_rows%n_ids ? n*id*(n_rows/n_ids+1) : n*(n_rows%n_ids)*(n_rows/n_ids+1) + n*(id-n_rows%n_ids)*(n_rows/n_ids);
 }
@@ -37,14 +37,14 @@ static int max_clusters(int n, int n_rows)
   return n*n_rows; // overestimate for now
 }
 
-static short has_neighbours(Bond* b, int n, Site* s)
+static short has_neighbours(Bond* b, int n, int idx)
 {
-  // indices of bonds
+  int r = idx/n, c = idx%n;
   int ib[] = {
-    s->r*n+s->c,          // left
-    s->r*n+(s->c+n+1)%n,  // right
-    s->r*n+s->c,          // top
-    ((s->r+n+1)%n)*n+s->c // bottom
+    r*n+c,          // left
+    r*n+(c+n+1)%n,  // right
+    r*n+c,          // top
+    ((r+n+1)%n)*n+c // bottom
   };
   for(int i = 0; i < 4; ++i) {
     if((i<2 && b->h[ib[i]]) || (i>=2 && b->v[ib[i]])) return 1; 
@@ -52,83 +52,83 @@ static short has_neighbours(Bond* b, int n, Site* s)
   return 0;
 }
 
-static void get_neighbours(Site* sites, Bond* b, int n, Site* s, Site* nbs[], int start_index, int end_index)
+static void get_neighbours(Site* sites, Bond* b, int nbs[], int idx, int n, int t_start, int t_end, int n_t_rows)
 {
+  int r = idx/n_t_rows, c = idx%n;
   // indices of neighbours
   int is[] = {
-    s->r*n+(s->c+n-1)%n,   // left
-    s->r*n+(s->c+n+1)%n,   // right
-    ((s->r+n-1)%n)*n+s->c, // top
-    ((s->r+n+1)%n)*n+s->c  // bottom
+    r*n+(c+n-1)%n,   // left
+    r*n+(c+n+1)%n,   // right
+    ((r+n-1)%n)*n+c, // top
+    ((r+n+1)%n)*n+c  // bottom
   };
   // indices of bonds
   int ib[] = {
-    s->r*n+s->c,          // left
-    s->r*n+(s->c+n+1)%n,  // right
-    s->r*n+s->c,          // top
-    ((s->r+n+1)%n)*n+s->c // bottom
+    r*n+c,          // left
+    r*n+(c+n+1)%n,  // right
+    r*n+c,          // top
+    ((r+n+1)%n)*n+c // bottom
   };
   for(int i = 0; i < 4; ++i) {
-    Site* nb = &sites[is[i]];
-    if(is[i] < start_index || is[i] >= end_index) nbs[i] = NULL; // out of thread bounds
+    int nbi = is[i], bi = ib[i];
+    Site* nb = &sites[nbi];
+    if(nbi < t_start || nbi >= t_end) nbs[i] = -1; // out of thread bounds
     else if(!nb->seen && (
       (!b && nb->occupied) ||
-      (b && ((i<2 && b->h[ib[i]]) || (i>=2 && b->v[ib[i]]))))
+      (b && ((i<2 && b->h[bi]) || (i>=2 && b->v[bi]))))
     ) {
       nb->seen = 1; // must mark site here for n=2 case when top neighbour == bottom neighbour
-      nbs[i] = nb;
-    } else nbs[i] = NULL;
+      nbs[i] = nbi;
+    } else nbs[i] = -1;
   }
 }
 
-static short on_border(int idx, int n, int process_n_rows, int n_thread_workers) {
-  for(int tid = 0; tid < n_thread_workers; ++tid) {
-    int start_index = get_start_index(n, process_n_rows, tid, n_thread_workers); // starting from zero
-    int n_rows = get_n_rows(process_n_rows, tid, n_thread_workers);
-    int end_index = start_index + n*n_rows;
-    if((idx >= start_index && idx < start_index+n) || (idx >= end_index-n && idx < end_index)) return 1;
+static short on_border(int idx, int n, int n_t_workers, int n_p_rows) {
+  for(int tid = 0; tid < n_t_workers; ++tid) {
+    int start = get_start(n, n_p_rows, tid, n_t_workers); // starting from zero
+    int n_rows = get_n_rows(n_p_rows, tid, n_t_workers);
+    int end = start + n*n_rows;
+    if((idx >= start && idx < start+n) || (idx >= end-n && idx < end)) return 1;
   }
   return 0;
 }
 
-static void DFS(Site* sites, Bond* b, int n, int n_thread_workers, int process_n_rows, Stack* st, int start_index, int end_index) {
+static void DFS(Site* sites, Bond* b, Stack* st, int n, int t_start, int t_end, int n_t_rows, int n_t_workers, int n_p_rows) {
   while(!is_empty(st)) {
-    Site *s = pop(st);
-    Site *nbs[4];
-    get_neighbours(sites, b, n, s, nbs, start_index, end_index);
-    Cluster* cl = s->cluster;
+    int idx = pop(st);
+    int nbs[4];
+    get_neighbours(sites, b, nbs, idx, n, t_start, t_end, n_t_rows);
+    Cluster* cl = sites[idx].cluster;
     for(int i = 0; i < 4; ++i) { // loop through connected, unseen neighbours
-      if(!nbs[i]) continue; 
-      Site* nb = nbs[i];
+      if(nbs[i] == -1) continue; 
+      Site* nb = &sites[nbs[i]];
       nb->cluster = cl;
       ++cl->size;
       if(!cl->rows[nb->r]) cl->height++;
       if(!cl->cols[nb->c]) cl->width++;
       cl->rows[nb->r] = 1;
       cl->cols[nb->c] = 1;
-      int idx = nb->r*n+nb->c;
-      if(on_border(idx, n, process_n_rows, n_thread_workers)) cl->sites[cl->site_size++] = idx; // add index of neighbour to cluster's site index array
-      add(st, nb);
+      if(on_border(nbs[i], n, n_t_workers, n_p_rows)) cl->sites[cl->site_size++] = nbs[i]; // add index of neighbour to cluster's site index array
+      add(st, nbs[i]);
     }
   }
 }
 
-static void percolate(Site* sites, Bond* b, int n, int tid, int start_index, int thread_n_rows, int process_n_rows, int n_thread_workers, Cluster** clusters, int* n_clusters)
+static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int n_t_rows, int n_t_workers, int n_p_rows, Cluster** clusters, int* n_clusters)
 {
-  int n_sites = n*thread_n_rows;
-  int end_index = start_index + n_sites;
+  int n_sites = n*n_t_rows;
+  int t_end = t_start + n_sites;
   Stack* st = stack(n_sites);
-  for(int i = start_index; i < end_index; ++i) {
+  for(int i = t_start; i < t_end; ++i) {
     Site *s = &sites[i];
-    if(!s->seen && ((!b && s->occupied) || (b && has_neighbours(b, n, s)))) { // if unseen and will form a cluster
+    if(!s->seen && ((!b && s->occupied) || (b && has_neighbours(b, n, i)))) { // if unseen and will form a cluster
       s->seen = 1;
-      s->cluster = cluster(n, n_thread_workers, s->r, s->c);
+      s->cluster = cluster(n, n_t_workers, s->r, s->c);
       Cluster *sc = s->cluster;
-      int idx = s->r*n+s->c;
-      if(on_border(idx, n, process_n_rows, n_thread_workers)) sc->sites[sc->site_size++] = idx;
+      if(on_border(i, n, n_t_workers, n_p_rows)) sc->sites[sc->site_size++] = i;
       clusters[(*n_clusters)++] = sc; 
-      add(st, s);
-      DFS(sites, b, n, n_thread_workers, process_n_rows, st, start_index, end_index);
+      add(st, i);
+      DFS(sites, b, st, n, t_start, t_end, n_t_rows, n_t_workers, n_p_rows);
     }   
   }
 }
@@ -226,32 +226,30 @@ int main(int argc, char *argv[])
     }
   }
   if(rank < n_workers) {
-    int process_start_index = get_start_index(n, n, rank, n_workers);
-    int process_n_rows = get_n_rows(n, rank, n_workers);
-    int process_end_index = process_start_index + n*process_n_rows;
-    int n_thread_workers = min(n_threads, process_n_rows);
+    int p_start = get_start(n, n, rank, n_workers);
+    int n_p_rows = get_n_rows(n, rank, n_workers);
+    int p_end = p_start + n*n_p_rows;
+    int n_t_workers = min(n_threads, n_p_rows);
 
-    Site* sites = site_array(a, n, process_start_index, process_end_index);
+    Site* sites = site_array(a, n);
     if(site) free(a); // occupation info now stored in sites
 
-    print_site_array(sites, n, process_n_rows);
-    printf("-\n");
+    print_site_array(sites, n, n);
 
-    Cluster*** thread_clusters = calloc(n_thread_workers, sizeof(Cluster**));
-    for(int i = 0; i < n_thread_workers; ++i) thread_clusters[i] = calloc(max_clusters(n, process_n_rows), sizeof(Cluster*));
-    int* n_thread_clusters = calloc(n_thread_workers, sizeof(int));
+    Cluster*** t_clusters = calloc(n_t_workers, sizeof(Cluster**));
+    for(int i = 0; i < n_t_workers; ++i) t_clusters[i] = calloc(max_clusters(n, n_p_rows), sizeof(Cluster*));
+    int* n_t_clusters = calloc(n_t_workers, sizeof(int));
 
     #pragma omp parallel
     {
       int tid = omp_get_thread_num();
-      int thread_start_index = get_start_index(n, process_n_rows, tid, n_thread_workers); // starting from zero
-      int thread_n_rows = get_n_rows(process_n_rows, tid, n_thread_workers);
-      if(tid < n_thread_workers) {
-        percolate(sites, b, n, tid, thread_n_rows, process_n_rows, thread_start_index, n_thread_workers, thread_clusters[tid], &n_thread_clusters[tid]);
-        // printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, thread_n_rows, n_thread_clusters[tid]);
-        for(int i = 0; i < n_thread_clusters[tid]; ++i) {
-          // printf("Rank %d thread %d cluster %d size %d\n", rank, tid, thread_clusters[tid][i]->id, thread_clusters[tid][i]->size);
-          ;
+      int t_start = get_start(n, n_p_rows, tid, n_t_workers); // starting from zero
+      int n_t_rows = get_n_rows(n_p_rows, tid, n_t_workers);
+      if(tid < n_t_workers) {
+        percolate(sites, b, n, tid, t_start, n_t_rows, n_t_workers, n_p_rows, t_clusters[tid], &n_t_clusters[tid]);
+        // printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, n_thread_rows, n_thread_clusters[tid]);
+        for(int i = 0; i < n_t_clusters[tid]; ++i) {
+          printf("Rank %d thread %d cluster %d size %d\n", rank, tid, t_clusters[tid][i]->id, t_clusters[tid][i]->size);
         } 
       }
     }

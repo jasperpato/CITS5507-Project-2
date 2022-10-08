@@ -8,11 +8,11 @@
 
 #include "../include/site.h"
 
-Site* site_array(short* a, int n, int start_index, int end_index)
+Site* site_array(short* a, int n)
 {
-  Site* sites = calloc(end_index-start_index, sizeof(Site));
+  Site* sites = calloc(n*n, sizeof(Site));
   if(!sites) return NULL;
-  for(int i = start_index; i < end_index; ++i) {
+  for(int i = 0; i < n*n; ++i) {
     sites[i].r = i/n;
     sites[i].c = i%n;
     if(a && a[i]) sites[i].occupied = 1;
@@ -75,13 +75,13 @@ void print_site_array(Site* a, int n, int num_rows)
   int s = num_digits(n-1);
   printf("\n ");
   for(int i = 0; i < s; ++i) printf(" ");
-  for(int c = 0; c < n; ++c) printf(" %*d", s, c);
+  for(int c = 0; c < n; ++c) printf("\033[0;34m %*d\033[0;30m", s, c);
   printf("\n\n");
   for(int r = 0; r < num_rows; ++r) {
-    printf("%*d ", s, r);
+    printf("\033[0;34m%*d \033[0;30m", s, r);
     for(int c = 0; c < n; ++c) {
       for(int i = 0; i < s; ++i) printf(" ");
-      if(a[r*n+c].occupied) printf("X");
+      if(a[r*n+c].occupied) printf("\033[0;31mX\033[0;30m");
       else printf("O");
     }
     printf("\n");

@@ -12,7 +12,7 @@
 #include "./site.h"
 
 typedef struct Stack {
-  Site** stack;
+  int* stack;
   int first, last;
 } Stack;
 
@@ -23,9 +23,9 @@ Stack* stack(int);
 
 short is_empty(Stack*);
 
-void add(Stack*, Site*);
+void add(Stack*, int);
 
-Site* pop(Stack*);
+int pop(Stack*);
 
 void free_stack(Stack*);
 
