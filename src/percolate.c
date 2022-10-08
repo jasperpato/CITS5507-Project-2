@@ -234,8 +234,6 @@ int main(int argc, char *argv[])
     Site* sites = site_array(a, n);
     if(site) free(a); // occupation info now stored in sites
 
-    print_site_array(sites, n, n);
-
     Cluster*** t_clusters = calloc(n_t_workers, sizeof(Cluster**));
     for(int i = 0; i < n_t_workers; ++i) t_clusters[i] = calloc(max_clusters(n, n_p_rows), sizeof(Cluster*));
     int* n_t_clusters = calloc(n_t_workers, sizeof(int));
@@ -247,10 +245,7 @@ int main(int argc, char *argv[])
       int n_t_rows = get_n_rows(n_p_rows, tid, n_t_workers);
       if(tid < n_t_workers) {
         percolate(sites, b, n, tid, t_start, n_t_rows, n_t_workers, n_p_rows, t_clusters[tid], &n_t_clusters[tid]);
-        // printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, n_thread_rows, n_thread_clusters[tid]);
-        for(int i = 0; i < n_t_clusters[tid]; ++i) {
-          printf("Rank %d thread %d cluster %d size %d\n", rank, tid, t_clusters[tid][i]->id, t_clusters[tid][i]->size);
-        } 
+        printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, n_thread_rows, n_thread_clusters[tid]);
       }
     }
     // join clusters
