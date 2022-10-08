@@ -123,7 +123,7 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_
     Site *s = &sites[i];
     if(!s->seen && ((!b && s->occupied) || (b && has_neighbours(b, n, i)))) { // if unseen and will form a cluster
       s->seen = 1;
-      s->cluster = cluster(n, nt_workers, s->r, s->c);
+      s->cluster = cluster(n, nt_workers, i);
       Cluster *sc = s->cluster;
       if(on_border(i, n, nt_workers, np_rows)) sc->sites[sc->site_size++] = i;
       clusters[(*n_clusters)++] = sc; 
@@ -133,14 +133,15 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_
   }
 }
 
-static int bottom_neighbour(Site* sites, Bond* b, int n, int i)
+static int bottom_neighbour(Site* sites, Bond* b, int n, int i, int p_start, int np_rows)
 {
   int r = i/n, c = i%n;
   int nbi = ((r+n+1)%n)*n+c; // index of bottom neighbour in a and bottom bond in b
+  if(nbi < p_start || nbi >= p_start + n*np_rows) return -1; // in another process's region
   Site *s = &sites[i], *nb = &sites[nbi];
   if((!b && !nb->occupied) || (b && !b->v[nbi])) return -1;
   if(!s->cluster || !nb->cluster) {
-    printf("Error if here.\n"); // both clusters should have been initialised
+    printf("Error if here s %p n %p.\n", s->cluster, nb->cluster); // both clusters should have been initialised
     return -1;
   }
   if(s->cluster->id == nb->cluster->id) return -1;
@@ -155,7 +156,7 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
       Site *s = &sites[i];
       Cluster *sc = s->cluster;
       if(!sc) continue;
-      int nbi = bottom_neighbour(sites, b, n, i);
+      int nbi = bottom_neighbour(sites, b, n, i, p_start, np_rows);
       if(nbi == -1) continue;
       Site *nb = &sites[nbi];
       Cluster *nc = nb->cluster;

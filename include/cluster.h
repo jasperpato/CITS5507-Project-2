@@ -26,7 +26,7 @@ typedef struct CPArray {
 /** 
  * @return Cluster* pointer to a new cluster starting from site (r, c)  
  */
-Cluster* cluster(int, int, int, int);
+Cluster* cluster(int, int, int);
 
 /** 
  * @return CPArray* an array of CPArrays, one for each thread

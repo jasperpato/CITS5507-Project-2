@@ -9,17 +9,17 @@
 #include "../include/cluster.h"
 
 /** 
- * @return Cluster* pointer to a new cluster starting from site (r, c)  
+ * @return Cluster* pointer to a new cluster starting from site i  
  */
-Cluster* cluster(int n, int n_threads, int r, int c) {
+Cluster* cluster(int n, int n_threads, int i) {
   Cluster *cl = (Cluster*)calloc(1, sizeof(Cluster));
   if(!cl) return NULL;
   cl->rows = (short*)calloc(n, sizeof(short));
   cl->cols = (short*)calloc(n, sizeof(short));
   if(!cl->rows || !cl->cols) return NULL;
-  cl->id = r*n+c;
-  cl->rows[r] = 1;
-  cl->cols[c] = 1;
+  cl->id = i;
+  cl->rows[i/n] = 1;
+  cl->cols[i%n] = 1;
   cl->height = 1;
   cl->width = 1;
   cl->size = 1;
