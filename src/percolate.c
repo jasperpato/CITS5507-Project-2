@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
       int n_t_rows = get_n_rows(n_p_rows, tid, n_t_workers);
       if(tid < n_t_workers) {
         percolate(sites, b, n, tid, t_start, n_t_rows, n_t_workers, n_p_rows, t_clusters[tid], &n_t_clusters[tid]);
-        printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, n_thread_rows, n_thread_clusters[tid]);
+        printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, n_t_rows, n_t_clusters[tid]);
       }
     }
     // join clusters
