@@ -105,7 +105,7 @@ if __name__ == '__main__':
   a = ArgumentParser()
   a.add_argument('--fname', default=RESULTS_FILE)
   a.add_argument('--n-threads', default=4, type=int)
-  a.add_argument('--time', default='total_time', help='Type of time to track. Options = {init_time, perc_time, join_time, scan_time, total_time}')
+  a.add_argument('--time', default='total_time', help='Type of time to track. Options = {init_time, perc_time, jointime, scantime, total_time}')
   a.add_argument('-n', type=int)
   a.add_argument('-p', type=float)
   a.add_argument('--n-squared', action='store_true')
