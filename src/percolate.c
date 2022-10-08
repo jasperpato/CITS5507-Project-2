@@ -54,7 +54,7 @@ static short has_neighbours(Bond* b, int n, int idx)
 
 static void get_neighbours(Site* sites, Bond* b, int nbs[], int idx, int n, int t_start, int t_end, int n_t_rows)
 {
-  int r = idx/n_t_rows, c = idx%n;
+  int r = idx/n, c = idx%n;
   // indices of neighbours
   int is[] = {
     r*n+(c+n-1)%n,   // left
@@ -245,8 +245,9 @@ int main(int argc, char *argv[])
       int n_t_rows = get_n_rows(n_p_rows, tid, n_t_workers);
       if(tid < n_t_workers) {
         percolate(sites, b, n, tid, t_start, n_t_rows, n_t_workers, n_p_rows, t_clusters[tid], &n_t_clusters[tid]);
-        printf("Rank %d thread %d num rows %d num clusters %d\n", rank, tid, n_t_rows, n_t_clusters[tid]);
+        // printf("Rank %d thread %d start %d end %d num rows %d num clusters %d\n", rank, tid, t_start, t_start+n*n_t_rows, n_t_rows, n_t_clusters[tid]);
       }
+      for(int i = 0; i < n_t_clusters[tid]; ++i) printf("Rank %d thread %d cluster %d size %d\n", rank, tid, t_clusters[tid][i]->id, t_clusters[tid][i]->size);
     }
     // join clusters
     // send data to master
