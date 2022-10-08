@@ -83,17 +83,17 @@ static void get_neighbours(Site* sites, Bond* b, int nbs[], int idx, int n, int 
   }
 }
 
-static short on_border(int idx, int n, int nt_workers, int np_rows) {
+static short on_border(int idx, int n, int nt_workers, int p_start, int np_rows) {
   for(int tid = 0; tid < nt_workers; ++tid) {
-    int start = get_start(n, np_rows, tid, nt_workers); // starting from zero
-    int n_rows = get_n_rows(np_rows, tid, nt_workers);
-    int end = start + n*n_rows;
-    if((idx >= start && idx < start+n) || (idx >= end-n && idx < end)) return 1;
+    int t_start = p_start + get_start(n, np_rows, tid, nt_workers); // starting from zero
+    int nt_rows = get_n_rows(np_rows, tid, nt_workers);
+    int t_end = t_start + n*nt_rows;
+    if((idx >= t_start && idx < t_start+n) || (idx >= t_end-n && idx < t_end)) return 1;
   }
   return 0;
 }
 
-static void DFS(Site* sites, Bond* b, Stack* st, int n, int t_start, int t_end, int nt_rows, int nt_workers, int np_rows) {
+static void DFS(Site* sites, Bond* b, Stack* st, int n, int t_start, int t_end, int nt_rows, int nt_workers, int p_start, int np_rows) {
   while(!is_empty(st)) {
     int idx = pop(st);
     int nbs[4];
@@ -108,13 +108,13 @@ static void DFS(Site* sites, Bond* b, Stack* st, int n, int t_start, int t_end, 
       if(!cl->cols[nb->c]) cl->width++;
       cl->rows[nb->r] = 1;
       cl->cols[nb->c] = 1;
-      if(on_border(nbs[i], n, nt_workers, np_rows)) cl->sites[cl->site_size++] = nbs[i]; // add index of neighbour to cluster's site index array
+      if(on_border(nbs[i], n, nt_workers, p_start, np_rows)) cl->sites[cl->site_size++] = nbs[i]; // add index of neighbour to cluster's site index array
       add(st, nbs[i]);
     }
   }
 }
 
-static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_rows, int nt_workers, int np_rows, Cluster** clusters, int* n_clusters)
+static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_rows, int nt_workers, int p_start, int np_rows, Cluster** clusters, int* n_clusters)
 {
   int n_sites = n*nt_rows;
   int t_end = t_start + n_sites;
@@ -125,10 +125,10 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_
       s->seen = 1;
       s->cluster = cluster(n, nt_workers, i);
       Cluster *sc = s->cluster;
-      if(on_border(i, n, nt_workers, np_rows)) sc->sites[sc->site_size++] = i;
+      if(on_border(i, n, nt_workers, p_start, np_rows)) sc->sites[sc->site_size++] = i;
       clusters[(*n_clusters)++] = sc; 
       add(st, i);
-      DFS(sites, b, st, n, t_start, t_end, nt_rows, nt_workers, np_rows);
+      DFS(sites, b, st, n, t_start, t_end, nt_rows, nt_workers, p_start, np_rows);
     }   
   }
 }
@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
       int tid = omp_get_thread_num();
       int t_start = p_start + get_start(n, np_rows, tid, nt_workers);
       int nt_rows = get_n_rows(np_rows, tid, nt_workers);
-      if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, np_rows, t_clusters[tid], &nt_clusters[tid]);
+      if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
     for(int tid = 0; tid < nt_workers; ++tid) {
