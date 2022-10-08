@@ -231,8 +231,6 @@ int main(int argc, char *argv[])
     int p_end = p_start + n*np_rows;
     int nt_workers = min(n_threads, np_rows);
 
-    printf("Start %d End %d Rows %d Workers %d\n", p_start, p_end, np_rows, nt_workers);
-
     Site* sites = site_array(a, n);
     if(site) free(a); // occupation info now stored in sites
 
@@ -243,7 +241,7 @@ int main(int argc, char *argv[])
     #pragma omp parallel
     {
       int tid = omp_get_thread_num();
-      int t_start = get_start(n, np_rows, tid, nt_workers); // starting from zero
+      int t_start = p_start + get_start(n, np_rows, tid, nt_workers); // starting from zero
       int nt_rows = get_n_rows(np_rows, tid, nt_workers);
       if(tid < nt_workers) {
         percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, np_rows, t_clusters[tid], &nt_clusters[tid]);
