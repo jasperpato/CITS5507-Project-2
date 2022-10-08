@@ -133,6 +133,55 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_
   }
 }
 
+static int bottom_neighbour(Site* sites, Bond* b, int n, int i)
+{
+  int r = i/n, c = i%n;
+  int nbi = ((r+n+1)%n)*n+c; // index of bottom neighbour in a and bottom bond in b
+  Site *s = &sites[i], *nb = &sites[nbi];
+  if((!b && !nb->occupied) || (b && !b->v[nbi])) return -1;
+  if(!s->cluster || !nb->cluster) {
+    printf("Error if here.\n"); // both clusters should have been initialised
+    return -1;
+  }
+  if(s->cluster->id == nb->cluster->id) return -1;
+  return nbi;
+}
+
+static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_start, int np_rows) {
+  for(int i = 0; i < nt_workers; ++i) {
+    int r_end = p_start + get_start(n, np_rows, i, nt_workers) + n*get_n_rows(np_rows, i, nt_workers);
+    int r_start = r_end-n;
+    for(int i = r_start; i < r_end; ++i) { // loop along bottom row of region
+      Site *s = &sites[i];
+      Cluster *sc = s->cluster;
+      if(!sc) continue;
+      int nbi = bottom_neighbour(sites, b, n, i);
+      if(nbi == -1) continue;
+      Site *nb = &sites[nbi];
+      Cluster *nc = nb->cluster;
+      // combine two clusters into sc
+      sc->size += nc->size;
+      for(int j = 0; j < n; ++j) {
+        if(nc->rows[j]) {
+          if(!sc->rows[j]) sc->height++;
+          sc->rows[j] = 1;
+        }
+        if(nc->cols[j]) {
+          if(!sc->cols[j]) sc->width++;
+          sc->cols[j] = 1;
+        }
+      }
+      for(int j = 0; j < nc->site_size; ++j) {
+        int idx = nc->sites[j];
+        sc->sites[sc->site_size++] = idx;
+        if(idx != nb->r*n+nb->c) sites[idx].cluster = sc; // don't overwrite neighbour until last
+      }
+      nc->id = -1; // mark as obsolete
+      nb->cluster = sc; // now overwrite neighbour
+    }
+  }
+}
+
 void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short site, char* fname, float p, int seed) {
   if(site) print_short_array(a, n);
   else print_bond(b, n);
@@ -241,15 +290,17 @@ int main(int argc, char *argv[])
     #pragma omp parallel
     {
       int tid = omp_get_thread_num();
-      int t_start = p_start + get_start(n, np_rows, tid, nt_workers); // starting from zero
+      int t_start = p_start + get_start(n, np_rows, tid, nt_workers);
       int nt_rows = get_n_rows(np_rows, tid, nt_workers);
-      if(tid < nt_workers) {
-        percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, np_rows, t_clusters[tid], &nt_clusters[tid]);
-        // printf("Rank %d thread %d start %d end %d num rows %d num clusters %d\n", rank, tid, t_start, t_start+n*nt_rows, nt_rows, nt_clusters[tid]);
-      }
-      for(int i = 0; i < nt_clusters[tid]; ++i) printf("Rank %d thread %d cluster %d size %d\n", rank, tid, t_clusters[tid][i]->id, t_clusters[tid][i]->size);
+      if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
-    // join clusters
+    if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
+    for(int tid = 0; tid < nt_workers; ++tid) {
+      for(int i = 0; i < nt_clusters[tid]; ++i) {
+        Cluster *c = t_clusters[tid][i];
+        if(c->id != -1) printf("Rank %d thread %d cluster %d size %d\n", rank, tid, t_clusters[tid][i]->id, t_clusters[tid][i]->size);
+      }
+    }
     // send data to master
   }
   // master join clusters
