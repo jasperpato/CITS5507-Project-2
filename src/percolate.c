@@ -210,7 +210,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
   // gather cluster data
   for(int i = p_start; i < p_end; ++i) { // top row
     Cluster *c = sites[i].cluster;
-    if(c && in_array(c->id, seen_cluster_ids, seen_index)) {
+    if(c && c->id != -1 && in_array(c->id, seen_cluster_ids, seen_index)) {
       seen_cluster_ids[seen_index++] = c->id;
       p_stats[3]++;
       data[di++] = c->id;
