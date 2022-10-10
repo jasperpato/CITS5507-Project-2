@@ -222,7 +222,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
     }
     if(i+1 == p_start+n) i = p_end-n-1; // jump to bottom row
   }
-  printf("%d\n", p_stats[3]);
+  printf("%d\n", p_stats[3]); fflush(stdout);
   MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   MPI_Send(data, 2*n + nc_attrs*p_stats[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   free(data);
