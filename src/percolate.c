@@ -165,10 +165,11 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
       for(int tid2 = 0; tid2 <nt_workers; ++tid2) {
         int t2_start = p_start + get_start(n, np_rows, tid2, nt_workers);
         int t2_end = t2_start + n*get_n_rows(np_rows, tid2, nt_workers);
-        for(int j = t2_start; j < t2_end; ++j) {
+        for(int j = t2_start; j < t2_end;) {
           Cluster *c = sites[j].cluster;
           if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
-          if(j+1 == t2_start+n) j = t2_end-n-1; // jump to bottom row
+          if(j+1 == t2_start+n) j = t2_end-n; // jump to bottom row
+          else ++j;
         }
       }
       nc->id = -1; // mark as obsolete
@@ -200,15 +201,16 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
   int seen_index = 0;
 
   // gather site data
-  for(int i = p_start; i < p_end; ++i) { // top row
+  for(int i = p_start; i < p_end;) { // top row
     Cluster *c = sites[i].cluster;
     if(c) data[di++] = c->id;
     else data[di++] = -1;
-    if(i+1 == p_start+n) i = p_end-n-1; // jump to bottom row
+    if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+    else ++i;
   }
 
   // gather cluster data
-  for(int i = p_start; i < p_end; ++i) { // top row
+  for(int i = p_start; i < p_end;) { // top row
     Cluster *c = sites[i].cluster;
     if(c && c->id != -1 && in_array(c->id, seen_cluster_ids, seen_index)) {
       seen_cluster_ids[seen_index++] = c->id;
@@ -220,7 +222,8 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
       for(int k = 0; k < n; ++k) data[di++] = c->rows[k];
       for(int k = 0; k < n; ++k) data[di++] = c->cols[k];
     }
-    if(i+1 == p_start+n) i = p_end-n-1; // jump to bottom row
+    if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+    else ++i;
   }
   MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   MPI_Send(data, 2*n + nc_attrs*p_stats[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
@@ -342,18 +345,16 @@ int main(int argc, char *argv[])
     }
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
     
-    for(int tid = 0; tid < nt_workers; ++tid) {
-      for(int i = 0; i < nt_clusters[tid]; ++i) {
-        Cluster *c = t_clusters[tid][i];
-        if(c->id != -1) { printf("Id %d size %d\n", c->id, c->size); fflush(stdout); }
-      }
-    }
+    // for(int tid = 0; tid < nt_workers; ++tid) {
+    //   for(int i = 0; i < nt_clusters[tid]; ++i) {
+    //     Cluster *c = t_clusters[tid][i];
+    //     if(c->id != -1) { printf("Id %d size %d\n", c->id, c->size); fflush(stdout); }
+    //   }
+    // }
     if(rank > MASTER) send_clusters(sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
-    
     if(rank == MASTER) { // receive cluster data
       if(n_workers > 1) {
         int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
-
         int p_stats[n_workers-1][4]; // num clusters, max cluster size, col perc, num border clusters
         int **data = calloc(n_workers-1, sizeof(int*));
         int nb_clusters, d_size;
