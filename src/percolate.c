@@ -372,7 +372,6 @@ int main(int argc, char *argv[])
           di += nc_attrs;
         }
       }
-      }
     }
   }
   MPI_Finalize();
