@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
       if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
-
+    printf("Num workers %d\n", n_workers);
     if(rank > MASTER) {
       printf("%d Hum\n", rank); fflush(stdout);
       send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
