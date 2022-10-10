@@ -350,15 +350,17 @@ int main(int argc, char *argv[])
 
         int p_stats[n_workers-1][4]; // num clusters, max cluster size, col perc, num border clusters
         int **data = calloc(n_workers-1, sizeof(int*));
-
+        int nb_clusters, d_size;
         for(int i = 0; i < n_workers-1; ++i) {
           MPI_Recv(p_stats[i], 4, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-          int nb_clusters = p_stats[i][3];
-          int d_size = 2*n + nc_attrs*nb_clusters;
+          nb_clusters = p_stats[i][3];
+          d_size = 2*n + nc_attrs*nb_clusters;
           data[i] = calloc(d_size, sizeof(int));
           MPI_Recv(data[i], d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
 
-          // print summary of received data
+        // print summary of received data
+        for(int i = 0; i < n_workers-1; ++i) {
           for(int j = 0; j < 2*n; ++j) {
             printf("%d ", data[i][j]);
             if(j+1 == n || j+1 == 2*n) printf("\n");
