@@ -183,6 +183,75 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
   }
 }
 
+void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, int* nt_clusters, int p_start, int p_end)
+{
+  int p_stats[3]; // num clusters, max cluster size, col perc boolean
+  for(int tid = 0; tid < nt_workers; ++tid) {
+    p_stats[0] += nt_clusters[tid];
+    for(int i = 0; i < nt_clusters[tid]; ++i) {
+      Cluster *c = t_clusters[tid][i];
+      if(c->size > p_stats[1]) p_stats[1] = c->size;
+      if(c->width == n) p_stats[2] = 1;
+    }
+  }
+  // send current max cluster size and whether there is column percolation
+  MPI_Send(p_stats, 2, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
+  
+  int nborder_clusters = 0;
+  int border_sites_size = 0; // keep track of total length of clusters' site arrays
+
+  // cluster info
+  int *cs = calloc(2+5*2*n, sizeof(int)); // first two ints are nborder_clusters and border_sites_size
+  int j = 1;
+  for(int i = p_start; i < p_end; ++i) { // top row
+    Cluster *c = sites[i].cluster;
+    if(c) {
+      ++nborder_clusters;
+      cs[j++] = c->id;
+      cs[j++] = c->size;
+      cs[j++] = c->width;
+      cs[j++] = c->height;
+      cs[j++] = c->site_size;
+      border_sites_size += c->site_size;
+    } else {
+      for(int k = 0; k < 5; ++k) cs[j++] = -1; // no cluster at this site
+    }
+    if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+  }
+  cs[0] = nborder_clusters;
+  cs[1] = border_sites_size;
+
+  MPI_Send(cs, 2+5*2*n, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
+  free(cs);
+
+  // row and col arrays
+  int *rcs = calloc(2*n * nborder_clusters, sizeof(int));
+  j = 0;
+  for(int i = p_start; i < p_end; ++i) { // top row
+    Cluster *c = sites[i].cluster;
+    if(c) {
+      for(int k = 0; k < n; ++k) rcs[j++] = c->rows[k];
+      for(int k = 0; k < n; ++k) rcs[j++] = c->cols[k];
+    }
+    if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+  }
+  MPI_Send(rcs, 2*n * nborder_clusters, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
+  free(rcs);
+
+  // site arrays
+  int *ss = calloc(border_sites_size, sizeof(int));
+  j = 0;
+  for(int i = p_start; i < p_end; ++i) { // top row
+    Cluster *c = sites[i].cluster;
+    if(c) {
+      for(int k = 0; k < c->site_size; ++k) ss[j++] = c->sites[k];
+    }
+    if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+  }
+  MPI_Send(ss, border_sites_size, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
+  free(ss);
+}
+
 void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short site, char* fname, float p, int seed) {
   if(site) print_short_array(a, n);
   else print_bond(b, n);
@@ -296,16 +365,29 @@ int main(int argc, char *argv[])
       if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
-    for(int tid = 0; tid < nt_workers; ++tid) {
-      for(int i = 0; i < nt_clusters[tid]; ++i) {
-        Cluster *c = t_clusters[tid][i];
-        if(c->id != -1) printf("Rank %d thread %d cluster %d size %d\n", rank, tid, t_clusters[tid][i]->id, t_clusters[tid][i]->size);
+    if(rank > MASTER) send_clusters(sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
+    if(rank == MASTER) { // receive cluster data
+      if(n_workers > 1) {
+        int p_stats[n_workers-1][3]; // num clusters, max cluster size, col perc bool
+        int **cs = calloc(n_workers-1, sizeof(int*));
+        int **rcs = calloc(n_workers-1, sizeof(int*));
+        int **ss = calloc(n_workers-1, sizeof(int*));
+
+        for(int i = 1; i < n_workers; ++i) {
+          MPI_Recv(p_stats[i-1], 3, MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          cs[i-1] = calloc(2+5*2*n, sizeof(int)); // first two ints are nborder_clusters and border_sites_size
+          MPI_Recv(cs[i-1], 2+5*2*n, MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          rcs[i-1] = calloc(2*n*cs[i][0], sizeof(int));
+          MPI_Recv(rcs[i-1], 2*n*cs[i][0], MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          ss[i-1] = calloc(cs[i][1], sizeof(int));
+          MPI_Recv(ss[i-1], cs[i][1], MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+          printf("Rank %d nborder_clusters %d border_sites_size %d\n", i, cs[i][0], cs[i][1]);
+        }
+
       }
     }
-    // send data to master
   }
-  // master join clusters
-  // print outputs
   MPI_Finalize();
   exit(EXIT_SUCCESS);
 }

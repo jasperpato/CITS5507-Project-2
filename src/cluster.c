@@ -28,23 +28,9 @@ Cluster* cluster(int n, int n_threads, int i) {
   return cl;
 }
 
-/** 
- * @return CPArray* an array of CPArrays, one for each thread
- */
-CPArray* cluster_array(int n_threads, int num_clusters) {
-  CPArray* cpa = calloc(n_threads, sizeof(CPArray));
-  for(int i = 0; i < n_threads; ++i) cpa[i].cls = calloc(num_clusters, sizeof(Cluster*));
-  return cpa;
-}
-
 void free_cluster(Cluster *cl) {
   free(cl->rows);
   free(cl->cols);
   free(cl->sites);
   free(cl);
-}
-
-void free_cparray(CPArray* cpa, int n_threads) {
-  for(int i = 0; i < n_threads; ++i) free(cpa[i].cls);
-  free(cpa);
 }
