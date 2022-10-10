@@ -349,7 +349,7 @@ int main(int argc, char *argv[])
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
 
     if(rank > MASTER) {
-      send_clusters(sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
+      send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
       printf("%d Heh\n", rank); fflush(stdout);
     }
     if(rank == MASTER) { // receive cluster data
