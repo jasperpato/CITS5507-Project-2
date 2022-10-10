@@ -231,7 +231,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
       }
     }
     else s_clusters[sm++] = -1;
-    if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+    if(i+1 == p_start+n) i = p_end-n-1; // jump to bottom row
   }
   int nb_clusters = (cs_index-2)/5;
   cs[0] = nb_clusters;
@@ -253,7 +253,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
   //     for(int k = 0; k < n; ++k) rcs[j++] = c->rows[k];
   //     for(int k = 0; k < n; ++k) rcs[j++] = c->cols[k];
   //   }
-  //   if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+  //   if(i+1 == p_start+n) i = p_end-n-1; // jump to bottom row
   // }
   // MPI_Send(rcs, 2*n * nborder_clusters, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   // free(rcs);
@@ -267,7 +267,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
   //   if(c) {
   //     for(int k = 0; k < c->site_size; ++k) ss[j++] = c->sites[k];
   //   }
-  //   if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+  //   if(i+1 == p_start+n) i = p_end-n-1; // jump to bottom row
   // }
   // MPI_Send(ss, border_sites_size, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   // free(ss);
