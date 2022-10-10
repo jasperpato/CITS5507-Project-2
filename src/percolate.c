@@ -381,10 +381,10 @@ int main(int argc, char *argv[])
           MPI_Recv(p_stats[i-1], 3, MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
           cs[i-1] = calloc(2+5*2*n, sizeof(int)); // first two ints are nborder_clusters and border_sites_size
           MPI_Recv(cs[i-1], 2+5*2*n, MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-          rcs[i-1] = calloc(2*n*cs[i][0], sizeof(int));
-          MPI_Recv(rcs[i-1], 2*n*cs[i][0], MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-          ss[i-1] = calloc(cs[i][1], sizeof(int));
-          MPI_Recv(ss[i-1], cs[i][1], MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          rcs[i-1] = calloc(2*n*cs[i-1][0], sizeof(int));
+          MPI_Recv(rcs[i-1], 2*n*cs[i-1][0], MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          ss[i-1] = calloc(cs[i-1][1], sizeof(int));
+          MPI_Recv(ss[i-1], cs[i-1][1], MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
           printf("Rank %d nborder_clusters %d border_sites_size %d\n", i, cs[i-1][0], cs[i-1][1]);
         }
