@@ -326,6 +326,7 @@ int main(int argc, char *argv[])
       MPI_Recv(b->h, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
   }
+  printf("rank %d nwork %d\n", rank, n_workers); fflush(stdout);
   if(rank < n_workers) {
     int p_start = get_start(n, n, rank, n_workers);
     int np_rows = get_n_rows(n, rank, n_workers);
@@ -347,7 +348,7 @@ int main(int argc, char *argv[])
       if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
-    printf("Num workers %d\n", n_workers);
+    printf("Num workers %d\n", n_workers); fflush(stdout);
     if(rank > MASTER) {
       printf("%d Hum\n", rank); fflush(stdout);
       send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
