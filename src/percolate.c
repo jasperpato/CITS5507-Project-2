@@ -162,7 +162,7 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
         }
       }
       // loop along all thread borders and update cluster pointers if necessary
-      for(int tid2 = 0; tid2 <nt_workers; ++tid2) {
+      for(int tid2 = 0; tid2 < nt_workers; ++tid2) {
         int t2_start = p_start + get_start(n, np_rows, tid2, nt_workers);
         int t2_end = t2_start + n*get_n_rows(np_rows, tid2, nt_workers);
         for(int j = t2_start; j < t2_end;) {
@@ -288,8 +288,6 @@ int main(int argc, char *argv[])
   omp_set_num_threads(n_threads);
   int n_workers = min(size, ceiling_divide(n, n_threads)); // utilise all threads first, then add nodes
 
-  printf("Rank %d nworkers %d\n", rank, n_workers); fflush(stdout);
-
   // master initialises lattice and sends to workers
   if(rank == MASTER) {
     srand(seed);
@@ -330,7 +328,6 @@ int main(int argc, char *argv[])
     int np_rows = get_n_rows(n, rank, n_workers);
     int p_end = p_start + n*np_rows;
     int nt_workers = min(n_threads, np_rows);
-    printf(">Rank %d nworkers %d ntworkers %d\n", rank, n_workers, nt_workers); fflush(stdout);
 
     Site* sites = site_array(a, n);
     if(site) free(a); // occupation info now stored in sites
@@ -352,31 +349,29 @@ int main(int argc, char *argv[])
       send_clusters(sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
     }
     if(rank == MASTER) { // receive cluster data
-      if(n_workers > 1) {
-        int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
-        int p_stats[n_workers-1][4]; // num clusters, max cluster size, col perc, num border clusters
-        int **data = calloc(n_workers-1, sizeof(int*));
-        int nb_clusters, d_size;
-        for(int i = 0; i < n_workers-1; ++i) {
-          MPI_Recv(p_stats[i], 4, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-          nb_clusters = p_stats[i][3];
-          d_size = 2*n + nc_attrs*nb_clusters;
-          data[i] = calloc(d_size, sizeof(int));
-          MPI_Recv(data[i], d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
+      int p_stats[n_workers][4]; // num clusters, max cluster size, col perc, num border clusters
+      int **data = calloc(n_workers, sizeof(int*));
+      int nb_clusters, d_size;
+      for(int i = 1; i < n_workers; ++i) {
+        MPI_Recv(p_stats[i], 4, MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        nb_clusters = p_stats[i][3];
+        d_size = 2*n + nc_attrs*nb_clusters;
+        data[i] = calloc(d_size, sizeof(int));
+        MPI_Recv(data[i], d_size, MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      }
+      // print summary of received data
+      for(int i = 1; i < n_workers; ++i) {
+        for(int j = 0; j < 2*n; ++j) {
+          printf("%d ", data[i][j]);
+          if(j+1 == n || j+1 == 2*n) printf("\n");
         }
-
-        // print summary of received data
-        for(int i = 0; i < n_workers-1; ++i) {
-          for(int j = 0; j < 2*n; ++j) {
-            printf("%d ", data[i][j]);
-            if(j+1 == n || j+1 == 2*n) printf("\n");
-          }
-          int di = 2*n;
-          for(int j = 0; j < nb_clusters; ++j) {
-            printf("Id %d size %d width %d height %d\n", data[i][di], data[i][di+1], data[i][di+2], data[i][di+3]);
-            di += nc_attrs;
-          }
+        int di = 2*n;
+        for(int j = 0; j < nb_clusters; ++j) {
+          printf("Id %d size %d width %d height %d\n", data[i][di], data[i][di+1], data[i][di+2], data[i][di+3]);
+          di += nc_attrs;
         }
+      }
       }
     }
   }
