@@ -184,7 +184,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
     for(int i = 0; i < nt_clusters[tid]; ++i) {
       Cluster *c = t_clusters[tid][i];
       if(c->id == -1) continue;
-      (p_stats[0])++;
+      p_stats[0]++;
       if(c->size > p_stats[1]) p_stats[1] = c->size;
       if(c->width == n) p_stats[2] = 1;
     }
@@ -212,6 +212,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
     Cluster *c = sites[i].cluster;
     if(c && in_array(c->id, seen_cluster_ids, seen_index)) {
       seen_cluster_ids[seen_index++] = c->id;
+      p_stats[3]++;
       data[di++] = c->id;
       data[di++] = c->size;
       data[di++] = c->width;
@@ -221,7 +222,6 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
     }
     if(i+1 == p_start+n) i = p_end-n-1; // jump to bottom row
   }
-  p_stats[3] = (di-2*n)/nc_attrs; // num border clusters
 
   MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   MPI_Send(data, 2*n + nc_attrs*p_stats[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
