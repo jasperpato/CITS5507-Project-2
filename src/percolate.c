@@ -161,7 +161,6 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
           sc->cols[j] = 1;
         }
       }
-      int k = 0;
       // loop along all thread borders and update cluster pointers if necessary
       for(int tid2 = 0; tid2 < nt_workers; ++tid2) {
         int t2_start = p_start + get_start(n, np_rows, tid2, nt_workers);
@@ -169,13 +168,10 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
         for(int j = t2_start; j < t2_end;) {
           Cluster *c = sites[j].cluster;
           if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
-          if(j+1 == t2_start+n) j = t2_end-n; // jump to bottom row
+          if(t2_end-t2_start > n && j+1 == t2_start+n) j = t2_end-n; // jump to bottom row
           else ++j;
-          printf("in %d\n", k++);
         }
-        printf("out %d\n", k++);
       }
-      printf("outer %d\n", k++);
       nc->id = -1; // mark as obsolete
       nb->cluster = sc; // now overwrite neighbour
     }
@@ -205,11 +201,11 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
   int seen_index = 0;
 
   // gather site data
-  for(int i = p_start; i < p_end;) { // top row
+  for(int i = p_start; i < p_start+n;) { // top row
     Cluster *c = sites[i].cluster;
     if(c) data[di++] = c->id;
     else data[di++] = -1;
-    if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+    if(p_end-p_start > n && i+1 == p_start+n) i = p_end-n; // jump to bottom row
     else ++i;
   }
 
@@ -226,7 +222,7 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
       for(int k = 0; k < n; ++k) data[di++] = c->rows[k];
       for(int k = 0; k < n; ++k) data[di++] = c->cols[k];
     }
-    if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
+    if(p_end-p_start > n && i+1 == p_start+n) i = p_end-n; // jump to bottom row
     else ++i;
   }
   MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
@@ -327,7 +323,6 @@ int main(int argc, char *argv[])
       MPI_Recv(b->h, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
   }
-  printf("1. Rank %d Num workers %d\n", rank, n_workers); fflush(stdout);
   if(rank < n_workers) {
     int p_start = get_start(n, n, rank, n_workers);
     int np_rows = get_n_rows(n, rank, n_workers);
@@ -348,9 +343,7 @@ int main(int argc, char *argv[])
       int nt_rows = get_n_rows(np_rows, tid, nt_workers);
       if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
-    printf("2. Rank %d Num workers %d\n", rank, n_workers); fflush(stdout);
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
-    printf("3. Rank %d Num workers %d\n", rank, n_workers); fflush(stdout);
     if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
     if(rank == MASTER) { // receive cluster data
       int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
