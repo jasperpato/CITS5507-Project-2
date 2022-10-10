@@ -161,6 +161,7 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
           sc->cols[j] = 1;
         }
       }
+      int k = 0;
       // loop along all thread borders and update cluster pointers if necessary
       for(int tid2 = 0; tid2 < nt_workers; ++tid2) {
         int t2_start = p_start + get_start(n, np_rows, tid2, nt_workers);
@@ -170,8 +171,11 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
           if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
           if(j+1 == t2_start+n) j = t2_end-n; // jump to bottom row
           else ++j;
+          printf("%d\n", k++);
         }
+        printf("%d\n", k++);
       }
+      printf("%d\n", k++);
       nc->id = -1; // mark as obsolete
       nb->cluster = sc; // now overwrite neighbour
     }
