@@ -352,6 +352,7 @@ int main(int argc, char *argv[])
         int **data = calloc(n_workers-1, sizeof(int*));
         int nb_clusters, d_size;
         for(int i = 0; i < n_workers-1; ++i) {
+          printf("hmm\n");
           MPI_Recv(p_stats[i], 4, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
           nb_clusters = p_stats[i][3];
           printf("M %d\n", nb_clusters);
