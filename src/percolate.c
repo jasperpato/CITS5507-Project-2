@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
     //     if(c->id != -1) { printf("Id %d size %d\n", c->id, c->size); fflush(stdout); }
     //   }
     // }
-    printf("Rank %d nworkers %d ntworkers %d\n", rank, n_workers, nt_workers);
+    printf("Rank %d nworkers %d ntworkers %d\n", rank, n_workers, nt_workers); fflush(stdout);
     if(rank > MASTER) {
       send_clusters(sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
     }
