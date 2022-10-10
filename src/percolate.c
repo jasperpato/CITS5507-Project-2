@@ -345,7 +345,7 @@ int main(int argc, char *argv[])
     for(int tid = 0; tid < nt_workers; ++tid) {
       for(int i = 0; i < nt_clusters[tid]; ++i) {
         Cluster *c = t_clusters[tid][i];
-        if(c->id != -1) printf("Id %d size %d\n", c->id, c->size);
+        if(c->id != -1) printf("Id %d size %d\n", c->id, c->size); fflush(stdout);
       }
     }
     if(rank > MASTER) send_clusters(sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
