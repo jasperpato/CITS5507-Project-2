@@ -171,11 +171,11 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
           if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
           if(j+1 == t2_start+n) j = t2_end-n; // jump to bottom row
           else ++j;
-          printf("%d\n", k++);
+          printf("in %d\n", k++);
         }
-        printf("%d\n", k++);
+        printf("out %d\n", k++);
       }
-      printf("%d\n", k++);
+      printf("outer %d\n", k++);
       nc->id = -1; // mark as obsolete
       nb->cluster = sc; // now overwrite neighbour
     }
