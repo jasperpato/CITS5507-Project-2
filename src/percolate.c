@@ -165,11 +165,13 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
       for(int tid2 = 0; tid2 < nt_workers; ++tid2) {
         int t2_start = p_start + get_start(n, np_rows, tid2, nt_workers);
         int t2_end = t2_start + n*get_n_rows(np_rows, tid2, nt_workers);
-        for(int j = t2_start; j < t2_end;) {
+        for(int j = t2_start; j < t2_start+n;) { // top row
           Cluster *c = sites[j].cluster;
           if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
-          if(t2_end-t2_start > n && j+1 == t2_start+n) j = t2_end-n; // jump to bottom row
-          else ++j;
+        }
+        for(int j = t2_end-n; j < t2_end;) { // bottom row
+          Cluster *c = sites[j].cluster;
+          if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
         }
       }
       nc->id = -1; // mark as obsolete
@@ -205,12 +207,15 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
     Cluster *c = sites[i].cluster;
     if(c) data[di++] = c->id;
     else data[di++] = -1;
-    if(p_end-p_start > n && i+1 == p_start+n) i = p_end-n; // jump to bottom row
-    else ++i;
+  }
+  for(int i = p_end-n; i < p_end;) { // bottom row
+    Cluster *c = sites[i].cluster;
+    if(c) data[di++] = c->id;
+    else data[di++] = -1;
   }
 
   // gather cluster data
-  for(int i = p_start; i < p_end;) { // top row
+  for(int i = p_start; i < p_start+n; ++i) { // top row
     Cluster *c = sites[i].cluster;
     if(c && c->id != -1 && in_array(c->id, seen_cluster_ids, seen_index)) {
       seen_cluster_ids[seen_index++] = c->id;
@@ -222,9 +227,21 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
       for(int k = 0; k < n; ++k) data[di++] = c->rows[k];
       for(int k = 0; k < n; ++k) data[di++] = c->cols[k];
     }
-    if(p_end-p_start > n && i+1 == p_start+n) i = p_end-n; // jump to bottom row
-    else ++i;
   }
+  for(int i = p_end-n; i < p_end; ++i) { // bottom row
+    Cluster *c = sites[i].cluster;
+    if(c && c->id != -1 && in_array(c->id, seen_cluster_ids, seen_index)) {
+      seen_cluster_ids[seen_index++] = c->id;
+      p_stats[3]++;
+      data[di++] = c->id;
+      data[di++] = c->size;
+      data[di++] = c->width;
+      data[di++] = c->height;
+      for(int k = 0; k < n; ++k) data[di++] = c->rows[k];
+      for(int k = 0; k < n; ++k) data[di++] = c->cols[k];
+    }
+  }
+
   MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   MPI_Send(data, 2*n + nc_attrs*p_stats[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   free(data);
