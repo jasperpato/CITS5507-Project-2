@@ -213,13 +213,13 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
   int seen_ids_size = 0;
 
   // map sites to cluster ids
-  int *sites_map = calloc(2*n, sizeof(int));
+  int *s_clusters = calloc(2*n, sizeof(int));
   int sm = 0;
 
   for(int i = p_start; i < p_end; ++i) { // top row
     Cluster *c = sites[i].cluster;
     if(c) {
-      sites_map[sm++] = c->id;
+      s_clusters[sm++] = c->id;
       if(unseen(c->id, seen_cluster_ids, seen_ids_size)) {
         seen_cluster_ids[seen_ids_size++] = c->id;
         cs[cs_index++] = c->id;
@@ -230,7 +230,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
         border_sites_size += c->site_size;
       }
     }
-    else sites_map[sm++] = -1;
+    else s_clusters[sm++] = -1;
     if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
   }
   int nb_clusters = (cs_index-2)/5;
@@ -239,6 +239,9 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
 
   MPI_Send(cs, 2+5*(n+2), MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   free(cs);
+
+  MPI_Send(s_clusters, 2*n, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
+  free(s_clusters);
   // printf("Sent cs\n");
 
   // row and col arrays
@@ -390,6 +393,8 @@ int main(int argc, char *argv[])
       if(n_workers > 1) {
         int p_stats[n_workers-1][2]; // num clusters, max cluster size
         int **cs = calloc(n_workers-1, sizeof(int*));
+        int **s_clusters = calloc(n_workers-1, sizeof(int*));
+
         // int **rcs = calloc(n_workers-1, sizeof(int*));
         // int **ss = calloc(n_workers-1, sizeof(int*));
 
@@ -398,14 +403,20 @@ int main(int argc, char *argv[])
           cs[i] = calloc(2+5*(n+2), sizeof(int)); // first two ints are nb_clusters and border_sites_size
           MPI_Recv(cs[i], 2+5*(n+2), MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
           
+          s_clusters[i] = calloc(2*n, sizeof(int));
+          MPI_Recv(s_clusters[i], 2*n, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
           // rcs[i-1] = calloc(2*n*cs[i-1][0], sizeof(int));
           // MPI_Recv(rcs[i-1], 2*n*cs[i-1][0], MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
           // ss[i-1] = calloc(cs[i-1][1], sizeof(int));
           // MPI_Recv(ss[i-1], cs[i-1][1], MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
           printf("Rank %d np_clusters %d max_size %d nb_clusters %d border_sites_size %d\n", i, p_stats[i][0], p_stats[i][1], cs[i][0], cs[i][1]);
+          for(int j = 0; j < 2*n; ++j) {
+            printf("%d ", s_clusters[i][j]);
+            if(j == n-1 || j == 2*n-1) printf("\n");
+          }
         }
-
       }
     }
   }
