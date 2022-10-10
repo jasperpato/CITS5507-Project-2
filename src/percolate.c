@@ -222,7 +222,6 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
     }
     if(i+1 == p_start+n) i = p_end-n-1; // jump to bottom row
   }
-  printf("%d\n", p_stats[3]); fflush(stdout);
   MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   MPI_Send(data, 2*n + nc_attrs*p_stats[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   free(data);
@@ -234,6 +233,7 @@ void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short 
   char str[50];
   sprintf(str, "P: %.2f\nS: %d\n", p, seed);
   printf("\n%s\n%d CPU%s\n%d thread%s\n\nN: %d\n%s\n", site ? "Site" : "Bond", n_workers, n_workers > 1 ? "s" : "", n_threads, n_threads > 1 ? "s" : "", n, fname ? "" : str);
+  fflush(stdout);
 }
 
 int main(int argc, char *argv[])
@@ -352,10 +352,8 @@ int main(int argc, char *argv[])
         int **data = calloc(n_workers-1, sizeof(int*));
         int nb_clusters, d_size;
         for(int i = 0; i < n_workers-1; ++i) {
-          printf("hmm\n");
           MPI_Recv(p_stats[i], 4, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
           nb_clusters = p_stats[i][3];
-          printf("M %d\n", nb_clusters);
           d_size = 2*n + nc_attrs*nb_clusters;
           data[i] = calloc(d_size, sizeof(int));
           MPI_Recv(data[i], d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
