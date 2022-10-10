@@ -225,11 +225,8 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
     if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
     else ++i;
   }
-  printf("%d Hoo\n", rank); fflush(stdout);
   MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
-  printf("%d Hop\n", rank); fflush(stdout);
   MPI_Send(data, 2*n + nc_attrs*p_stats[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
-  printf("%d Him\n", rank); fflush(stdout);
   free(data);
 }
 
@@ -326,7 +323,7 @@ int main(int argc, char *argv[])
       MPI_Recv(b->h, n*n, MPI_SHORT, MASTER, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
   }
-  printf("rank %d nwork %d\n", rank, n_workers); fflush(stdout);
+  printf("1. Rank %d Num workers %d\n", rank, n_workers); fflush(stdout);
   if(rank < n_workers) {
     int p_start = get_start(n, n, rank, n_workers);
     int np_rows = get_n_rows(n, rank, n_workers);
@@ -348,20 +345,14 @@ int main(int argc, char *argv[])
       if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
-    printf("Num workers %d\n", n_workers); fflush(stdout);
-    if(rank > MASTER) {
-      printf("%d Hum\n", rank); fflush(stdout);
-      send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
-      printf("%d Heh\n", rank); fflush(stdout);
-    }
+    printf("2. Rank %d Num workers %d\n", rank, n_workers); fflush(stdout);
+    if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
     if(rank == MASTER) { // receive cluster data
       int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
       int p_stats[n_workers][4]; // num clusters, max cluster size, col perc, num border clusters
       int **data = calloc(n_workers, sizeof(int*));
       int nb_clusters, d_size;
-      printf("%d Hah\n", rank); fflush(stdout);
       for(int i = 1; i < n_workers; ++i) {
-        printf("%d Hmm\n", rank); fflush(stdout);
         MPI_Recv(p_stats[i], 4, MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         nb_clusters = p_stats[i][3];
         d_size = 2*n + nc_attrs*nb_clusters;
