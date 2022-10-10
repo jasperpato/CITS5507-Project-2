@@ -178,7 +178,7 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
   }
 }
 
-void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, int* nt_clusters, int p_start, int p_end)
+void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_clusters, int* nt_clusters, int p_start, int p_end)
 {
   int p_stats[4] = {0,0,0,0}; // num clusters, max cluster size, col perc boolean, num border clusters
   for(int tid = 0; tid < nt_workers; ++tid) {
@@ -225,11 +225,11 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
     if(i+1 == p_start+n) i = p_end-n; // jump to bottom row
     else ++i;
   }
-  printf("Hoo\n"); fflush(stdout);
+  printf("%d Hoo\n", rank); fflush(stdout);
   MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
-  printf("Hop\n"); fflush(stdout);
+  printf("%d Hop\n", rank); fflush(stdout);
   MPI_Send(data, 2*n + nc_attrs*p_stats[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
-  printf("Him\n"); fflush(stdout);
+  printf("%d Him\n", rank); fflush(stdout);
   free(data);
 }
 
@@ -350,16 +350,16 @@ int main(int argc, char *argv[])
 
     if(rank > MASTER) {
       send_clusters(sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
-      printf("Heh\n"); fflush(stdout);
+      printf("%d Heh\n", rank); fflush(stdout);
     }
     if(rank == MASTER) { // receive cluster data
       int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
       int p_stats[n_workers][4]; // num clusters, max cluster size, col perc, num border clusters
       int **data = calloc(n_workers, sizeof(int*));
       int nb_clusters, d_size;
-      printf("Hah\n"); fflush(stdout);
+      printf("%d Hah\n", rank); fflush(stdout);
       for(int i = 1; i < n_workers; ++i) {
-        printf("Hmm\n"); fflush(stdout);
+        printf("%d Hmm\n", rank); fflush(stdout);
         MPI_Recv(p_stats[i], 4, MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         nb_clusters = p_stats[i][3];
         d_size = 2*n + nc_attrs*nb_clusters;
