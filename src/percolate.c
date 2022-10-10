@@ -179,12 +179,12 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
 
 void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, int* nt_clusters, int p_start, int p_end)
 {
-  int p_stats[4] = {0,0,0,0}; // num clusters, max cluster size, col perc boolean, num border clusters
+  int p_stats[4]; // num clusters, max cluster size, col perc boolean, num border clusters
   for(int tid = 0; tid < nt_workers; ++tid) {
     for(int i = 0; i < nt_clusters[tid]; ++i) {
       Cluster *c = t_clusters[tid][i];
       if(c->id == -1) continue;
-      ++p_stats[0];
+      (p_stats[0])++;
       if(c->size > p_stats[1]) p_stats[1] = c->size;
       if(c->width == n) p_stats[2] = 1;
     }
