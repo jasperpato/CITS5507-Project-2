@@ -288,6 +288,8 @@ int main(int argc, char *argv[])
   omp_set_num_threads(n_threads);
   int n_workers = min(size, ceiling_divide(n, n_threads)); // utilise all threads first, then add nodes
 
+  printf("Rank %d nworkers %d\n", rank, n_workers); fflush(stdout);
+
   // master initialises lattice and sends to workers
   if(rank == MASTER) {
     srand(seed);
@@ -328,6 +330,7 @@ int main(int argc, char *argv[])
     int np_rows = get_n_rows(n, rank, n_workers);
     int p_end = p_start + n*np_rows;
     int nt_workers = min(n_threads, np_rows);
+    printf(">Rank %d nworkers %d ntworkers %d\n", rank, n_workers, nt_workers); fflush(stdout);
 
     Site* sites = site_array(a, n);
     if(site) free(a); // occupation info now stored in sites
@@ -344,14 +347,7 @@ int main(int argc, char *argv[])
       if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
-    
-    // for(int tid = 0; tid < nt_workers; ++tid) {
-    //   for(int i = 0; i < nt_clusters[tid]; ++i) {
-    //     Cluster *c = t_clusters[tid][i];
-    //     if(c->id != -1) { printf("Id %d size %d\n", c->id, c->size); fflush(stdout); }
-    //   }
-    // }
-    printf("Rank %d nworkers %d ntworkers %d\n", rank, n_workers, nt_workers); fflush(stdout);
+
     if(rank > MASTER) {
       send_clusters(sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
     }
