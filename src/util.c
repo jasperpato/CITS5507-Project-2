@@ -25,3 +25,11 @@ int min(int a, int b) {
 int ceiling_divide(int a, int b) {
   return a / b + (a % b != 0);
 }
+
+short in_array(int el, int *a, int size)
+{
+  for(int i = 0; i < size; ++i) {
+    if(el == a[i]) return 0;
+  }
+  return 1;
+}

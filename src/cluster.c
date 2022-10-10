@@ -23,14 +23,11 @@ Cluster* cluster(int n, int n_threads, int i) {
   cl->height = 1;
   cl->width = 1;
   cl->size = 1;
-  cl->sites = calloc(2*n*n_threads, sizeof(int)); // only needs to store border sites
-  if(!cl->sites) return NULL;
   return cl;
 }
 
 void free_cluster(Cluster *cl) {
   free(cl->rows);
   free(cl->cols);
-  free(cl->sites);
   free(cl);
 }

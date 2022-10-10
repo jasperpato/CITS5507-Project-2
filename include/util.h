@@ -15,5 +15,6 @@
 int num_digits(int);
 int min(int, int);
 int ceiling_divide(int, int);
+short in_array(int, int*, int);
 
 #endif
