@@ -196,7 +196,8 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
   }
   // send current max cluster size and whether there is column percolation
   MPI_Send(p_stats, 2, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
-  
+  printf("Sent p_stats\n");
+
   int nborder_clusters = 0;
   int border_sites_size = 0; // keep track of total length of clusters' site arrays
 
@@ -223,6 +224,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
 
   MPI_Send(cs, 2+5*2*n, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   free(cs);
+  printf("Sent cs\n");
 
   // row and col arrays
   int *rcs = calloc(2*n * nborder_clusters, sizeof(int));
@@ -237,6 +239,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
   }
   MPI_Send(rcs, 2*n * nborder_clusters, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   free(rcs);
+  printf("Sent rcs\n");
 
   // site arrays
   int *ss = calloc(border_sites_size, sizeof(int));
@@ -250,6 +253,7 @@ void send_clusters(Site* sites, int n, int nt_workers, Cluster*** t_clusters, in
   }
   MPI_Send(ss, border_sites_size, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   free(ss);
+  printf("Sent ss\n");
 }
 
 void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short site, char* fname, float p, int seed) {
