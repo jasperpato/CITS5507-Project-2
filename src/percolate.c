@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
     if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
 
     else if(rank == MASTER) {
-      int max = 0, cperc = 0;
+      int max = 0, rperc = 0, cperc = 0;
 
       // overall cluster array
       Cluster*** p_clusters = calloc(n_workers, sizeof(Cluster**));
@@ -394,6 +394,10 @@ int main(int argc, char *argv[])
           int d_size = 2*n + nc_attrs*p_stats[i][3];
           data[i] = calloc(d_size, sizeof(int));
           MPI_Recv(data[i], d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+          // check max cluster size and cperc
+          if(p_stats[i][1] > max) max = p_stats[i][1];
+          if(p_stats[i][2]) cperc = 1;
         }
         
         // convert worker data into clusters and add to array
@@ -431,15 +435,17 @@ int main(int argc, char *argv[])
           }
         }
         join_clusters(sites, b, n, n_workers, 0, n);
-        // find max, cperc from stats
       }
-      print_site_array(sites, n);
+      // scan clusters
       for(int i = 0; i < n_workers; ++i) {
         for(int j = 0; j < np_clusters[i]; ++j) {
           Cluster *c = p_clusters[i][j];
-          if(c->id != -1) printf("%d\n", c->size);
+          if(c->size > max) max = c->size;
+          if(c->height == n) rperc = 1;
+          if(c->width == n) cperc = 1;
         }
       }
+      printf("Max %d rperc %d cperc %d\n", max, rperc, cperc);
     }
   }
   MPI_Finalize();
