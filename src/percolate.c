@@ -419,9 +419,8 @@ int main(int argc, char *argv[])
         }
       }
       join_clusters(sites, b, n, n_workers, 0, n);
-      print_site_array(sites, n);
-      // join
     }
+    print_site_array(sites, n);
   }
   MPI_Finalize();
   exit(EXIT_SUCCESS);
