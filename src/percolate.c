@@ -137,7 +137,7 @@ static int bottom_neighbour(Site* sites, Bond* b, int n, int i, int p_start, int
 }
 
 static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start, int rows) {
-  for(int w = 0; w < nt_workers; ++w) {
+  for(int w = 0; w < n_workers; ++w) {
     int s_start = start + get_start(n, rows, w, n_workers);
     int s_end = s_start + n*get_n_rows(rows, w, n_workers);
     for(int i = s_end-n; i < s_end; ++i) { // loop along bottom row of region
