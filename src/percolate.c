@@ -166,7 +166,7 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
         Cluster *c = sites[j].cluster;
         if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
       }
-      int t2_end = p_start + get_start(n, np_rows, tid+1, nt_workers);
+      int t2_end = p_start + get_start(n, np_rows, tid+1, nt_workers) + n*get_n_rows(np_rows, tid+1, nt_workers);
       for(int j = t2_end-n; j < t2_end; ++j) {
         Cluster *c = sites[j].cluster;
         if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
