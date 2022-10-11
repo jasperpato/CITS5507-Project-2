@@ -200,12 +200,12 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
   int seen_index = 0;
 
   // gather site data
-  for(int i = p_start; i < p_start+n;) { // top row
+  for(int i = p_start; i < p_start+n; ++i) { // top row
     Cluster *c = sites[i].cluster;
     if(c) data[di++] = c->id;
     else data[di++] = -1;
   }
-  for(int i = p_end-n; i < p_end;) { // bottom row
+  for(int i = p_end-n; i < p_end; ++i) { // bottom row
     Cluster *c = sites[i].cluster;
     if(c) data[di++] = c->id;
     else data[di++] = -1;
