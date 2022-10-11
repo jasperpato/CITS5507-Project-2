@@ -361,66 +361,70 @@ int main(int argc, char *argv[])
     if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
 
     // receive cluster data
-    else if(rank == MASTER && n_workers > 1) { 
-      int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
-      int p_stats[n_workers-1][4]; // num clusters, max cluster size, col perc, num border clusters
-      int **data = calloc(n_workers-1, sizeof(int*));
-      for(int i = 0; i < n_workers-1; ++i) {
-        MPI_Recv(p_stats[i], 4, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        int d_size = 2*n + nc_attrs*p_stats[i][3];
-        data[i] = calloc(d_size, sizeof(int));
-        MPI_Recv(data[i], d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      }
-      // process clusters
-      Cluster*** p_clusters = calloc(n_workers, sizeof(Cluster**));
-      int* np_clusters = calloc(n_workers, sizeof(int));
-      for(int i = 0; i < n_workers; ++i) p_clusters[i] = calloc(max_clusters(n, get_n_rows(n, i, n_workers)), sizeof(Cluster*));
-      printf("Hmm\n");
-      // condense master clusters into array
-      for(int tid = 0; tid < nt_workers; ++tid) {
-        for(int i = 0; i < nt_clusters[tid]; ++i) {
-          Cluster *c = t_clusters[tid][i];
-          if(c->id != -1) p_clusters[0][np_clusters[0]++] = c;
+    else if(rank == MASTER) {
+      int max = 0, cperc = 0;
+      if(n_workers > 1) { 
+        int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
+        int p_stats[n_workers-1][4]; // num clusters, max cluster size, col perc, num border clusters
+        int **data = calloc(n_workers-1, sizeof(int*));
+        for(int i = 0; i < n_workers-1; ++i) {
+          MPI_Recv(p_stats[i], 4, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          int d_size = 2*n + nc_attrs*p_stats[i][3];
+          data[i] = calloc(d_size, sizeof(int));
+          MPI_Recv(data[i], d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
-      }
-      printf("Him\n");
-      // convert worker data into clusters and add to array
-      for(int i = 0; i < n_workers-1; ++i) {
-        int d_size = 2*n + nc_attrs*p_stats[i][3];
-        for(int j = 2*n; j < d_size; j+=nc_attrs) { // loop through process clusters
-          Cluster *c = calloc(1, sizeof(Cluster));
-          c->rows = calloc(n, sizeof(short)); c->cols = calloc(n, sizeof(short));
-          c->id = data[i][j]; c->size = data[i][j+1]; c->width = data[i][j+2]; c->height = data[i][j+3];
-          for(int k = 0; k < n; ++k) c->rows[k] = data[i][j+4+k];
-          for(int k = 0; k < n; ++k) c->cols[k] = data[i][j+n+4+k];
-          p_clusters[i+1][np_clusters[i+1]++] = c;
+        // process clusters
+        Cluster*** p_clusters = calloc(n_workers, sizeof(Cluster**));
+        int* np_clusters = calloc(n_workers, sizeof(int));
+        for(int i = 0; i < n_workers; ++i) p_clusters[i] = calloc(max_clusters(n, get_n_rows(n, i, n_workers)), sizeof(Cluster*));
+        printf("Hmm\n");
+        // condense master clusters into array
+        for(int tid = 0; tid < nt_workers; ++tid) {
+          for(int i = 0; i < nt_clusters[tid]; ++i) {
+            Cluster *c = t_clusters[tid][i];
+            if(c->id != -1) p_clusters[0][np_clusters[0]++] = c;
+          }
         }
-      }
-      printf("Hah\n");
-      // add site cluster pointers to sites
-      for(int i = 1; i < n_workers; ++i) {
-        int p_start = get_start(n, n, i, n_workers);
-        int p_end = p_start + n*get_n_rows(n, i, n_workers);
-        for(int j = p_start; j < p_start+n; ++j) { // top row
-          for(int k = 0; k < np_clusters[i]; ++k) {
-            if(p_clusters[i][k]->id == data[i-1][j-p_start]) {
-              sites[j].cluster = p_clusters[i][k];
-              break;
+        printf("Him\n");
+        // convert worker data into clusters and add to array
+        for(int i = 0; i < n_workers-1; ++i) {
+          int d_size = 2*n + nc_attrs*p_stats[i][3];
+          for(int j = 2*n; j < d_size; j+=nc_attrs) { // loop through process clusters
+            Cluster *c = calloc(1, sizeof(Cluster));
+            c->rows = calloc(n, sizeof(short)); c->cols = calloc(n, sizeof(short));
+            c->id = data[i][j]; c->size = data[i][j+1]; c->width = data[i][j+2]; c->height = data[i][j+3];
+            for(int k = 0; k < n; ++k) c->rows[k] = data[i][j+4+k];
+            for(int k = 0; k < n; ++k) c->cols[k] = data[i][j+n+4+k];
+            p_clusters[i+1][np_clusters[i+1]++] = c;
+          }
+        }
+        printf("Hah\n");
+        // add site cluster pointers to sites
+        for(int i = 1; i < n_workers; ++i) {
+          int p_start = get_start(n, n, i, n_workers);
+          int p_end = p_start + n*get_n_rows(n, i, n_workers);
+          for(int j = p_start; j < p_start+n; ++j) { // top row
+            for(int k = 0; k < np_clusters[i]; ++k) {
+              if(p_clusters[i][k]->id == data[i-1][j-p_start]) {
+                sites[j].cluster = p_clusters[i][k];
+                break;
+              }
+            }
+          }
+          for(int j = p_end-n; j < p_end; ++j) { // bottom row
+            for(int k = 0; k < np_clusters[i]; ++k) {
+              if(p_clusters[i][k]->id == data[i-1][j-p_end+2*n]) {
+                sites[j].cluster = p_clusters[i][k];
+                break;
+              }
             }
           }
         }
-        for(int j = p_end-n; j < p_end; ++j) { // bottom row
-          for(int k = 0; k < np_clusters[i]; ++k) {
-            if(p_clusters[i][k]->id == data[i-1][j-p_end+2*n]) {
-              sites[j].cluster = p_clusters[i][k];
-              break;
-            }
-          }
-        }
+        join_clusters(sites, b, n, n_workers, 0, n);
+        // find max, cperc from stats
       }
-      join_clusters(sites, b, n, n_workers, 0, n);
+      print_site_array(sites, n);
     }
-    print_site_array(sites, n);
   }
   MPI_Finalize();
   exit(EXIT_SUCCESS);
