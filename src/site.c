@@ -81,7 +81,7 @@ void print_site_array(Site* a, int n)
     printf("\033[0;34m%*d \033[0;30m", s, r);
     for(int c = 0; c < n; ++c) {
       for(int i = 0; i < s; ++i) printf(" ");
-      printf("%d", a[r*n+c].cluster ? a[r*n+c].cluster->id : -1);
+      printf("%2d", a[r*n+c].cluster ? a[r*n+c].cluster->id : -1);
     }
     printf("\n");
   }
