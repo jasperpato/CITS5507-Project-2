@@ -136,15 +136,15 @@ static int bottom_neighbour(Site* sites, Bond* b, int n, int i, int p_start, int
   return nbi;
 }
 
-static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_start, int np_rows) {
-  for(int tid = 0; tid < nt_workers; ++tid) {
-    int t_start = p_start + get_start(n, np_rows, tid, nt_workers);
-    int t_end = t_start + n*get_n_rows(np_rows, tid, nt_workers);
-    for(int i = t_end-n; i < t_end; ++i) { // loop along bottom row of region
+static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start, int rows) {
+  for(int w = 0; w < nt_workers; ++w) {
+    int s_start = start + get_start(n, rows, w, n_workers);
+    int s_end = s_start + n*get_n_rows(rows, w, n_workers);
+    for(int i = s_end-n; i < s_end; ++i) { // loop along bottom row of region
       Site *s = &sites[i];
       Cluster *sc = s->cluster;
       if(!sc) continue;
-      int nbi = bottom_neighbour(sites, b, n, i, p_start, np_rows);
+      int nbi = bottom_neighbour(sites, b, n, i, start, rows);
       if(nbi == -1) continue;
       Site *nb = &sites[nbi];
       Cluster *nc = nb->cluster;
@@ -162,12 +162,12 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
         }
       }
       // loop along two borders of joined cluster and update cluster pointers if necessary
-      for(int j = p_start; j < p_start+n; ++j) {
+      for(int j = start; j < start+n; ++j) {
         Cluster *c = sites[j].cluster;
         if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
       }
-      int t2_end = p_start + get_start(n, np_rows, tid+1, nt_workers) + n*get_n_rows(np_rows, tid+1, nt_workers);
-      for(int j = t2_end-n; j < t2_end; ++j) {
+      int s2_end = start + get_start(n, rows, w+1, n_workers) + n*get_n_rows(rows, w+1, n_workers);
+      for(int j = s2_end-n; j < s2_end; ++j) {
         Cluster *c = sites[j].cluster;
         if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
       }
