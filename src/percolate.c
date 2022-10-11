@@ -167,7 +167,7 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
         if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
       }
       int t2_end = p_start + get_start(n, np_rows, tid+1, nt_workers);
-      for(int j = t2_end-n; j < t2_end;) {
+      for(int j = t2_end-n; j < t2_end; ++j) {
         Cluster *c = sites[j].cluster;
         if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
       }
@@ -371,6 +371,7 @@ int main(int argc, char *argv[])
         data[i] = calloc(d_size, sizeof(int));
         MPI_Recv(data[i], d_size, MPI_INT, i, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
+
       // print summary of received data
       for(int i = 1; i < n_workers; ++i) {
         for(int j = 0; j < 2*n; ++j) {
