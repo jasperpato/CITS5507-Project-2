@@ -81,8 +81,7 @@ void print_site_array(Site* a, int n)
     printf("\033[0;34m%*d \033[0;30m", s, r);
     for(int c = 0; c < n; ++c) {
       for(int i = 0; i < s; ++i) printf(" ");
-      if(a[r*n+c].occupied) printf("\033[0;31mX\033[0;30m");
-      else printf("O");
+      printf("%d", a[r*n+c].cluster ? a[r*n+c].cluster->id : -1);
     }
     printf("\n");
   }
