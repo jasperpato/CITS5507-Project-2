@@ -369,9 +369,22 @@ int main(int argc, char *argv[])
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
     if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
 
-    // receive cluster data
     else if(rank == MASTER) {
       int max = 0, cperc = 0;
+
+      // overall cluster array
+      Cluster*** p_clusters = calloc(n_workers, sizeof(Cluster**));
+      int* np_clusters = calloc(n_workers, sizeof(int));
+      for(int i = 0; i < n_workers; ++i) p_clusters[i] = calloc(max_clusters(n, get_n_rows(n, i, n_workers)), sizeof(Cluster*));
+      
+      // condense master clusters into array
+      for(int tid = 0; tid < nt_workers; ++tid) {
+        for(int i = 0; i < nt_clusters[tid]; ++i) {
+          Cluster *c = t_clusters[tid][i];
+          if(c->id != -1) p_clusters[0][np_clusters[0]++] = c;
+        }
+      }
+      // receive cluster data
       if(n_workers > 1) { 
         int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
         int p_stats[n_workers-1][4]; // num clusters, max cluster size, col perc, num border clusters
@@ -382,19 +395,7 @@ int main(int argc, char *argv[])
           data[i] = calloc(d_size, sizeof(int));
           MPI_Recv(data[i], d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
-        // process clusters
-        Cluster*** p_clusters = calloc(n_workers, sizeof(Cluster**));
-        int* np_clusters = calloc(n_workers, sizeof(int));
-        for(int i = 0; i < n_workers; ++i) p_clusters[i] = calloc(max_clusters(n, get_n_rows(n, i, n_workers)), sizeof(Cluster*));
-        printf("Hmm\n");
-        // condense master clusters into array
-        for(int tid = 0; tid < nt_workers; ++tid) {
-          for(int i = 0; i < nt_clusters[tid]; ++i) {
-            Cluster *c = t_clusters[tid][i];
-            if(c->id != -1) p_clusters[0][np_clusters[0]++] = c;
-          }
-        }
-        printf("Him\n");
+        
         // convert worker data into clusters and add to array
         for(int i = 0; i < n_workers-1; ++i) {
           int d_size = 2*n + nc_attrs*p_stats[i][3];
@@ -407,7 +408,7 @@ int main(int argc, char *argv[])
             p_clusters[i+1][np_clusters[i+1]++] = c;
           }
         }
-        printf("Hah\n");
+
         // add site cluster pointers to sites
         for(int i = 1; i < n_workers; ++i) {
           int p_start = get_start(n, n, i, n_workers);
@@ -433,6 +434,12 @@ int main(int argc, char *argv[])
         // find max, cperc from stats
       }
       print_site_array(sites, n);
+      for(int i = 0; i < n_workers; ++i) {
+        for(int j = 0; j < np_clusters[i]; ++j) {
+          Cluster *c = p_clusters[i][j];
+          if(c->id != -1) printf("%d\n", c->size);
+        }
+      }
     }
   }
   MPI_Finalize();
