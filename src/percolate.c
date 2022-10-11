@@ -161,18 +161,15 @@ static void join_clusters(Site* sites, Bond* b, int n, int nt_workers, int p_sta
           sc->cols[j] = 1;
         }
       }
-      // loop along all thread borders and update cluster pointers if necessary
-      for(int tid2 = 0; tid2 < nt_workers; ++tid2) {
-        int t2_start = p_start + get_start(n, np_rows, tid2, nt_workers);
-        int t2_end = t2_start + n*get_n_rows(np_rows, tid2, nt_workers);
-        for(int j = t2_start; j < t2_start+n;) { // top row
-          Cluster *c = sites[j].cluster;
-          if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
-        }
-        for(int j = t2_end-n; j < t2_end;) { // bottom row
-          Cluster *c = sites[j].cluster;
-          if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
-        }
+      // loop along two borders of joined cluster and update cluster pointers if necessary
+      for(int j = p_start; j < p_start+n; ++j) {
+        Cluster *c = sites[j].cluster;
+        if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
+      }
+      int t2_end = p_start + get_start(n, np_rows, tid+1, nt_workers);
+      for(int j = t2_end-n; j < t2_end;) {
+        Cluster *c = sites[j].cluster;
+        if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
       }
       nc->id = -1; // mark as obsolete
       nb->cluster = sc; // now overwrite neighbour
