@@ -136,11 +136,6 @@ static int bottom_neighbour(Site* sites, Bond* b, int n, int i, int p_start, int
   return nbi;
 }
 
-void update_cluster(Site *sites, int j, int nbi, Cluster *nc, Cluster *sc) {
-  Cluster *c = sites[j].cluster;
-  if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
-}
-
 static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start, int rows) {
   for(int w = 0; w < n_workers; ++w) {
     int s_start = start + get_start(n, rows, w, n_workers);
@@ -166,41 +161,28 @@ static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start,
           sc->cols[j] = 1;
         }
       }
-      // start and end of below region
+      // loop along two borders of joined cluster and update cluster pointers if necessary
+      for(int j = start; j < start+n; ++j) {
+        Cluster *c = sites[j].cluster;
+        if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
+      }
+      for(int j = s_end-n; j < s_end; ++j) {
+        Cluster *c = sites[j].cluster;
+        if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
+      }
       int s2_start = start + get_start(n, rows, (w+1)%n_workers, n_workers);
       int s2_end = s2_start + n*get_n_rows(rows, (w+1)%n_workers, n_workers);
-
-      // loop along current boundary and joined cluster borders, update clusters
-      for(int j = start; j < start+n; ++j) update_cluster(sites, j, nbi, nc, sc);
-      for(int j = s_end-n; j < s_end; ++j) update_cluster(sites, j, nbi, nc, sc);
-      for(int j = s2_start; j < s2_start+n; ++j) update_cluster(sites, j, nbi, nc, sc);
-      for(int j = s2_end-n; j < s2_end; ++j) update_cluster(sites, j, nbi, nc, sc);
-
+      for(int j = s2_start; j < s2_start+n; ++j) {
+        Cluster *c = sites[j].cluster;
+        if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
+      }
+      for(int j = s2_end-n; j < s2_end; ++j) {
+        Cluster *c = sites[j].cluster;
+        if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
+      }
       nc->id = -1; // mark as obsolete
       nb->cluster = sc; // now overwrite neighbour
     }
-  }
-}
-
-void copy_site_data(Site* sites, int i, int* data, int* di)
-{
-  Cluster *c = sites[i].cluster;
-  if(c) data[(*di)++] = c->id;
-  else data[(*di)++] = -1;
-}
-
-void copy_cluster_data(Site* sites, int n, int i, int* seen_cluster_ids, int* seen_index, int* p_stats, int* data, int* di)
-{
-  Cluster *c = sites[i].cluster;
-  if(c && c->id != -1 && !in_array(c->id, seen_cluster_ids, *seen_index)) {
-    seen_cluster_ids[(*seen_index)++] = c->id;
-    p_stats[3]++;
-    data[(*di)++] = c->id;
-    data[(*di)++] = c->size;
-    data[(*di)++] = c->width;
-    data[(*di)++] = c->height;
-    for(int k = 0; k < n; ++k) data[(*di)++] = c->rows[k];
-    for(int k = 0; k < n; ++k) data[(*di)++] = c->cols[k];
   }
 }
 
@@ -226,27 +208,49 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
   int *seen_cluster_ids = calloc(n+2, sizeof(int));
   int seen_index = 0;
 
-  // copy site data
-  for(int i = p_start; i < p_start+n; ++i) copy_site_data(sites, i, data, &di);
-  for(int i = p_end-n; i < p_end; ++i) copy_site_data(sites, i, data, &di);
+  // gather site data
+  for(int i = p_start; i < p_start+n; ++i) { // top row
+    Cluster *c = sites[i].cluster;
+    if(c) data[di++] = c->id;
+    else data[di++] = -1;
+  }
+  for(int i = p_end-n; i < p_end; ++i) { // bottom row
+    Cluster *c = sites[i].cluster;
+    if(c) data[di++] = c->id;
+    else data[di++] = -1;
+  }
 
-  // copy cluster data
-  for(int i = p_start; i < p_start+n; ++i) copy_cluster_data(sites, n, i, seen_cluster_ids, &seen_index, p_stats, data, &di); // top row
-  for(int i = p_end-n; i < p_end; ++i) copy_cluster_data(sites, n, i, seen_cluster_ids, &seen_index, p_stats, data, &di); // bottom row
+  // gather cluster data
+  for(int i = p_start; i < p_start+n; ++i) { // top row
+    Cluster *c = sites[i].cluster;
+    if(c && c->id != -1 && in_array(c->id, seen_cluster_ids, seen_index)) {
+      seen_cluster_ids[seen_index++] = c->id;
+      p_stats[3]++;
+      data[di++] = c->id;
+      data[di++] = c->size;
+      data[di++] = c->width;
+      data[di++] = c->height;
+      for(int k = 0; k < n; ++k) data[di++] = c->rows[k];
+      for(int k = 0; k < n; ++k) data[di++] = c->cols[k];
+    }
+  }
+  for(int i = p_end-n; i < p_end; ++i) { // bottom row
+    Cluster *c = sites[i].cluster;
+    if(c && c->id != -1 && in_array(c->id, seen_cluster_ids, seen_index)) {
+      seen_cluster_ids[seen_index++] = c->id;
+      p_stats[3]++;
+      data[di++] = c->id;
+      data[di++] = c->size;
+      data[di++] = c->width;
+      data[di++] = c->height;
+      for(int k = 0; k < n; ++k) data[di++] = c->rows[k];
+      for(int k = 0; k < n; ++k) data[di++] = c->cols[k];
+    }
+  }
 
   MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   MPI_Send(data, 2*n + nc_attrs*p_stats[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
   free(data);
-}
-
-void find_site_cluster(Site* sites, int n, int i, int j, Cluster*** p_clusters, int* np_clusters, int* data, int p_start)
-{
-  for(int k = 0; k < np_clusters[i+1]; ++k) {
-    if(p_clusters[i+1][k]->id == data[j-p_start]) {
-      sites[j].cluster = p_clusters[i+1][k];
-      break;
-    }
-  }
 }
 
 void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short site, char* fname, float p, int seed) {
@@ -407,9 +411,22 @@ int main(int argc, char *argv[])
           // add site cluster pointers to sites
           int p_start = get_start(n, n, i+1, n_workers);
           int p_end = p_start + n*get_n_rows(n, i+1, n_workers);
-          for(int j = p_start; j < p_start+n; ++j) find_site_cluster(sites, n, i, j, p_clusters, np_clusters, data, p_start); // top row
-          for(int j = p_end-n; j < p_end; ++j) find_site_cluster(sites, n, i, j, p_clusters, np_clusters, data, p_start); // bottom row
-          
+          for(int j = p_start; j < p_start+n; ++j) { // top row
+            for(int k = 0; k < np_clusters[i+1]; ++k) {
+              if(p_clusters[i+1][k]->id == data[j-p_start]) {
+                sites[j].cluster = p_clusters[i+1][k];
+                break;
+              }
+            }
+          }
+          for(int j = p_end-n; j < p_end; ++j) { // bottom row
+            for(int k = 0; k < np_clusters[i+1]; ++k) {
+              if(p_clusters[i+1][k]->id == data[j-p_end+2*n]) {
+                sites[j].cluster = p_clusters[i+1][k];
+                break;
+              }
+            }
+          }
           free(data);
         }
         join_clusters(sites, b, n, n_workers, 0, n);
