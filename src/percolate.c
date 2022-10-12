@@ -195,8 +195,8 @@ void copy_cluster_data(Site* sites, int n, int i, int* seen_cluster_ids, int* se
   if(c && c->id != -1 && in_array(c->id, seen_cluster_ids, *seen_index)) {
     seen_cluster_ids[(*seen_index)++] = c->id;
     p_stats[3]++;
-    data[(*di)++] = c->id;
-    data[(*di)++] = c->size;
+    data[(*di)++] = c->id; printf("%d\n", *di);
+    data[(*di)++] = c->size; printf("%d\n", *di);
     data[(*di)++] = c->width;
     data[(*di)++] = c->height;
     for(int k = 0; k < n; ++k) data[(*di)++] = c->rows[k];
@@ -239,7 +239,7 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
   free(data);
 }
 
-void add_site_clusters(Site* sites, int n, int i, int j, Cluster*** p_clusters, int* np_clusters, int* data, int p_start)
+void find_site_cluster(Site* sites, int n, int i, int j, Cluster*** p_clusters, int* np_clusters, int* data, int p_start)
 {
   for(int k = 0; k < np_clusters[i+1]; ++k) {
     if(p_clusters[i+1][k]->id == data[j-p_start]) {
@@ -407,8 +407,8 @@ int main(int argc, char *argv[])
           // add site cluster pointers to sites
           int p_start = get_start(n, n, i+1, n_workers);
           int p_end = p_start + n*get_n_rows(n, i+1, n_workers);
-          for(int j = p_start; j < p_start+n; ++j) add_site_clusters(sites, n, i, j, p_clusters, np_clusters, data, p_start); // top row
-          for(int j = p_end-n; j < p_end; ++j) add_site_clusters(sites, n, i, j, p_clusters, np_clusters, data, p_start); // bottom row
+          for(int j = p_start; j < p_start+n; ++j) find_site_cluster(sites, n, i, j, p_clusters, np_clusters, data, p_start); // top row
+          for(int j = p_end-n; j < p_end; ++j) find_site_cluster(sites, n, i, j, p_clusters, np_clusters, data, p_start); // bottom row
           
           free(data);
         }
