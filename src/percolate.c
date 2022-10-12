@@ -179,7 +179,7 @@ static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start,
       nc->id = -1; // mark as obsolete
       nb->cluster = sc; // now overwrite neighbour
 
-      if(num) --(*num);
+      if(num) --(*num); // decrement total number of clusters when a join happens
     }
   }
 }
