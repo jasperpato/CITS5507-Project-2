@@ -29,7 +29,7 @@ int ceiling_divide(int a, int b) {
 short in_array(int el, int *a, int size)
 {
   for(int i = 0; i < size; ++i) {
-    if(el == a[i]) return 0;
+    if(el == a[i]) return 1;
   }
-  return 1;
+  return 0;
 }

@@ -192,11 +192,11 @@ void copy_site_data(Site* sites, int i, int* data, int* di)
 void copy_cluster_data(Site* sites, int n, int i, int* seen_cluster_ids, int* seen_index, int* p_stats, int* data, int* di)
 {
   Cluster *c = sites[i].cluster;
-  if(c && c->id != -1 && in_array(c->id, seen_cluster_ids, *seen_index)) {
+  if(c && c->id != -1 && !in_array(c->id, seen_cluster_ids, *seen_index)) {
     seen_cluster_ids[(*seen_index)++] = c->id;
     p_stats[3]++;
-    data[(*di)++] = c->id; printf("%d\n", *di);
-    data[(*di)++] = c->size; printf("%d\n", *di);
+    data[(*di)++] = c->id;
+    data[(*di)++] = c->size;
     data[(*di)++] = c->width;
     data[(*di)++] = c->height;
     for(int k = 0; k < n; ++k) data[(*di)++] = c->rows[k];
