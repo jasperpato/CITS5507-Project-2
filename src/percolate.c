@@ -369,7 +369,10 @@ int main(int argc, char *argv[])
       for(int tid = 0; tid < nt_workers; ++tid) {
         for(int i = 0; i < nt_clusters[tid]; ++i) {
           Cluster *c = t_clusters[tid][i];
-          if(c->id != -1) p_clusters[0][np_clusters[0]++] = c;
+          if(c->id != -1) {
+            ++num;
+            p_clusters[0][np_clusters[0]++] = c;
+          }
         }
       }
       // receive cluster data
