@@ -418,6 +418,7 @@ int main(int argc, char *argv[])
           }
           free(data);
         }
+        printf("%d\n", num);
         join_clusters(sites, b, n, n_workers, 0, n, &num);
       }
       // scan clusters
