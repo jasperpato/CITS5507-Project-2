@@ -141,7 +141,7 @@ void update_cluster(Site *sites, int j, int nbi, Cluster *nc, Cluster *sc) {
   if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
 }
 
-static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start, int rows) {
+static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start, int rows, int* num) {
   for(int w = 0; w < n_workers; ++w) {
     int s_start = start + get_start(n, rows, w, n_workers);
     int s_end = s_start + n*get_n_rows(rows, w, n_workers);
@@ -178,6 +178,8 @@ static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start,
 
       nc->id = -1; // mark as obsolete
       nb->cluster = sc; // now overwrite neighbour
+
+      if(num) --(*num);
     }
   }
 }
@@ -356,7 +358,7 @@ int main(int argc, char *argv[])
     if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
 
     else if(rank == MASTER) {
-      int max = 0, rperc = 0, cperc = 0;
+      int num = 0, max = 0, rperc = 0, cperc = 0;
 
       // overall cluster array
       Cluster*** p_clusters = calloc(n_workers, sizeof(Cluster**));
@@ -381,7 +383,8 @@ int main(int argc, char *argv[])
           data = calloc(d_size, sizeof(int));
           MPI_Recv(data, d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-          // check max cluster size and cperc
+          // num clusters, max cluster size and cperc
+          num += p_stats[0];
           if(p_stats[1] > max) max = p_stats[1];
           if(p_stats[2]) cperc = 1;
 
@@ -415,7 +418,7 @@ int main(int argc, char *argv[])
           }
           free(data);
         }
-        join_clusters(sites, b, n, n_workers, 0, n);
+        join_clusters(sites, b, n, n_workers, 0, n, &num);
       }
       // scan clusters
       for(int i = 0; i < n_workers; ++i) {
@@ -426,7 +429,7 @@ int main(int argc, char *argv[])
           if(c->width == n) cperc = 1;
         }
       }
-      printf("Max %d rperc %d cperc %d\n", max, rperc, cperc);
+      printf("Num %d max %d rperc %d cperc %d\n", num, max, rperc, cperc);
     }
   }
   MPI_Finalize();
