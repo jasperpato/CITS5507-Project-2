@@ -388,8 +388,6 @@ int main(int argc, char *argv[])
 
           // num clusters, max cluster size and cperc
           num += p_stats[0];
-          printf("Worker %d num %d\n", i+1, p_stats[0]);
-
           if(p_stats[1] > max) max = p_stats[1];
           if(p_stats[2]) cperc = 1;
 
@@ -434,7 +432,6 @@ int main(int argc, char *argv[])
           if(c->width == n) cperc = 1;
         }
       }
-      print_site_array(sites, n);
       printf("Num %d max %d rperc %d cperc %d\n", num, max, rperc, cperc);
     }
   }
