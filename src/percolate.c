@@ -387,52 +387,47 @@ int main(int argc, char *argv[])
       // receive cluster data
       if(n_workers > 1) { 
         int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
-        int p_stats[n_workers-1][4]; // num clusters, max cluster size, col perc, num border clusters
-        int **data = calloc(n_workers-1, sizeof(int*));
+        int p_stats[4]; // num clusters, max cluster size, col perc, num border clusters
+        int *data;
         for(int i = 0; i < n_workers-1; ++i) {
-          MPI_Recv(p_stats[i], 4, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-          int d_size = 2*n + nc_attrs*p_stats[i][3];
-          data[i] = calloc(d_size, sizeof(int));
-          MPI_Recv(data[i], d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          MPI_Recv(p_stats, 4, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          int d_size = 2*n + nc_attrs*p_stats[3];
+          data = calloc(d_size, sizeof(int));
+          MPI_Recv(data, d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
           // check max cluster size and cperc
-          if(p_stats[i][1] > max) max = p_stats[i][1];
-          if(p_stats[i][2]) cperc = 1;
-        }
-        
-        // convert worker data into clusters and add to array
-        for(int i = 0; i < n_workers-1; ++i) {
-          int d_size = 2*n + nc_attrs*p_stats[i][3];
+          if(p_stats[1] > max) max = p_stats[1];
+          if(p_stats[2]) cperc = 1;
+
+          // convert worker data into clusters and add to array
           for(int j = 2*n; j < d_size; j+=nc_attrs) { // loop through process clusters
             Cluster *c = calloc(1, sizeof(Cluster));
             c->rows = calloc(n, sizeof(short)); c->cols = calloc(n, sizeof(short));
-            c->id = data[i][j]; c->size = data[i][j+1]; c->width = data[i][j+2]; c->height = data[i][j+3];
-            for(int k = 0; k < n; ++k) c->rows[k] = data[i][j+4+k];
-            for(int k = 0; k < n; ++k) c->cols[k] = data[i][j+n+4+k];
+            c->id = data[j]; c->size = data[j+1]; c->width = data[j+2]; c->height = data[j+3];
+            for(int k = 0; k < n; ++k) c->rows[k] = data[j+4+k];
+            for(int k = 0; k < n; ++k) c->cols[k] = data[j+n+4+k];
             p_clusters[i+1][np_clusters[i+1]++] = c;
           }
-        }
-
-        // add site cluster pointers to sites
-        for(int i = 1; i < n_workers; ++i) {
-          int p_start = get_start(n, n, i, n_workers);
-          int p_end = p_start + n*get_n_rows(n, i, n_workers);
+          // add site cluster pointers to sites
+          int p_start = get_start(n, n, i+1, n_workers);
+          int p_end = p_start + n*get_n_rows(n, i+1, n_workers);
           for(int j = p_start; j < p_start+n; ++j) { // top row
-            for(int k = 0; k < np_clusters[i]; ++k) {
-              if(p_clusters[i][k]->id == data[i-1][j-p_start]) {
-                sites[j].cluster = p_clusters[i][k];
+            for(int k = 0; k < np_clusters[i+1]; ++k) {
+              if(p_clusters[i+1][k]->id == data[j-p_start]) {
+                sites[j].cluster = p_clusters[i+1][k];
                 break;
               }
             }
           }
           for(int j = p_end-n; j < p_end; ++j) { // bottom row
-            for(int k = 0; k < np_clusters[i]; ++k) {
-              if(p_clusters[i][k]->id == data[i-1][j-p_end+2*n]) {
-                sites[j].cluster = p_clusters[i][k];
+            for(int k = 0; k < np_clusters[i+1]; ++k) {
+              if(p_clusters[i+1][k]->id == data[j-p_end+2*n]) {
+                sites[j].cluster = p_clusters[i+1][k];
                 break;
               }
             }
           }
+          free(data);
         }
         join_clusters(sites, b, n, n_workers, 0, n);
       }
