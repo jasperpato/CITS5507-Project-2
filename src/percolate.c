@@ -430,6 +430,7 @@ int main(int argc, char *argv[])
           if(c->width == n) cperc = 1;
         }
       }
+      print_site_array(sites, n);
       printf("Num %d max %d rperc %d cperc %d\n", num, max, rperc, cperc);
     }
   }
