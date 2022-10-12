@@ -385,6 +385,8 @@ int main(int argc, char *argv[])
 
           // num clusters, max cluster size and cperc
           num += p_stats[0];
+          printf("Worker %d num %d\n", i+1, p_stats[0]);
+
           if(p_stats[1] > max) max = p_stats[1];
           if(p_stats[2]) cperc = 1;
 
@@ -418,7 +420,6 @@ int main(int argc, char *argv[])
           }
           free(data);
         }
-        printf("%d\n", num);
         join_clusters(sites, b, n, n_workers, 0, n, &num);
       }
       // scan clusters
