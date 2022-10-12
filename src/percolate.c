@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
       int nt_rows = get_n_rows(np_rows, tid, nt_workers);
       if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
-    if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows);
+    if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows, NULL);
     if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
 
     else if(rank == MASTER) {
