@@ -443,17 +443,6 @@ int main(int argc, char *argv[])
       }
       double end = omp_get_wtime();
 
-      if(oname) {
-        FILE *f = fopen(oname, "a");
-        if(f) { 
-          fprintf(
-            f,
-            "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f\n",
-            n, p, n_workers, n_threads, seed, num, max, rperc, cperc, end-start_init
-          );
-          fclose(f);
-        }
-      }
       if(verbose) {
         printf(" Init time %9.6f\n", start_perc-start_init);
         printf(" Perc time %9.6f\n", start_tjoin-start_perc);
@@ -473,6 +462,20 @@ int main(int argc, char *argv[])
           "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f\n",
           n, p, n_workers, n_threads, seed, num, max, rperc, cperc, end-start_init
         );
+      }
+      if(oname) {
+        FILE *f = fopen(oname, "a");
+        if(f) { 
+          fprintf(
+            f,
+            "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f\n",
+            n, p, n_workers, n_threads, seed, num, max, rperc, cperc, end-start_init
+          );
+          fclose(f);
+        }
+        else {
+          printf("Results file error.\n");
+        }
       }
     }
   }
