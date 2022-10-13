@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
     if(c == 'v') verbose = 1;              // silence printing
     else if(c == 'b') site = 0;            // bond
     else if(c == 'f') fname = optarg;      // scan lattice from file
-    else if(c == 'o') oname = optarg;      // scan lattice from file
+    else if(c == 'o') oname = optarg;      // results file
     else if(c == 'r') seed = atoi(optarg); // seed rand with constant
   }
   // parse positional arguments
@@ -443,7 +443,18 @@ int main(int argc, char *argv[])
       }
       double end = omp_get_wtime();
 
-      if(verbose) {
+      if(oname) {
+        FILE *f = fopen(oname, "a");
+        if(f) { 
+          fprintf(
+            f,
+            "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f\n",
+            n, p, n_workers, n_threads, seed, num, max, rperc, cperc, end-start_init
+          );
+          fclose(f);
+        }
+      }
+      else if(verbose) {
         printf(" Init time %9.6f\n", start_perc-start_init);
         printf(" Perc time %9.6f\n", start_tjoin-start_perc);
         printf("Tjoin time %9.6f\n", start_recv-start_tjoin);
@@ -456,17 +467,6 @@ int main(int argc, char *argv[])
         printf("       Max size: %d\n", max);
         printf("Row percolation: %s\n", rperc ? "True" : "False");
         printf("Col percolation: %s\n", cperc ? "True" : "False");
-      }
-      else if(oname) {
-        FILE *f = fopen(oname, "a");
-        if(f) { 
-          fprintf(
-            f,
-            "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f\n",
-            n, p, n_workers, n_threads, seed, num, max, rperc, cperc, end-start_init
-          );
-          fclose(f);
-        }
       }
       else {
         printf(
