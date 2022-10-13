@@ -48,13 +48,21 @@ int main(int argc, char *argv[]) {
           int pid = fork();
           if(pid == -1) exit(EXIT_FAILURE);
           else if(pid == 0) { // child
-            char *args[] = {"percolate", "-r", NULL, "-o", NULL, NULL, NULL, NULL, NULL};
-            args[2] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[4], "%d", seed); // same seed for all n_threads
-            args[4] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[6], "%s", ONAME);
-            args[5] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[6], "%d", n);
-            args[6] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[7], "%f", p);
-            args[7] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[9], "%d", n_threads);
-            execv("../src/percolate", args);
+            // char *args[] = {"percolate", "-r", NULL, "-o", NULL, NULL, NULL, NULL, NULL};
+            // args[2] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[4], "%d", seed); // same seed for all n_threads
+            // args[4] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[6], "%s", ONAME);
+            // args[5] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[6], "%d", n);
+            // args[6] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[7], "%f", p);
+            // args[7] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[9], "%d", n_threads);
+            // execv("../src/percolate", args);
+
+            char *args[] = {"--mpi-pmix", "./percolate", "-r", NULL, "-o", NULL, NULL, NULL, NULL, NULL};
+            args[4] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[4], "%d", seed); // same seed for all n_threads
+            args[6] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[6], "%s", ONAME);
+            args[7] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[6], "%d", n);
+            args[8] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[7], "%f", p);
+            args[9] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[9], "%d", n_threads);
+            execv("srun", args);
           }
           else { // parent
             int status;
