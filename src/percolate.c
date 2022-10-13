@@ -218,7 +218,7 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
       if(c->width == n) p_stats[2] = 1;
     }
   }
-  int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
+  int nc_attrs = 4 + 2*n; // number of ints that describe a cluster
 
   // group site data and then cluster data into one array
   int *data = calloc(2*n + nc_attrs*(n+2), sizeof(int));
@@ -228,11 +228,11 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
   int *seen_cluster_ids = calloc(n+2, sizeof(int));
   int seen_index = 0;
 
-  // copy site data
-  for(int i = p_start; i < p_start+n; ++i) copy_site_data(sites, i, data, &di);
-  for(int i = p_end-n; i < p_end; ++i) copy_site_data(sites, i, data, &di);
+  // copy site data along borders
+  for(int i = p_start; i < p_start+n; ++i) copy_site_data(sites, i, data, &di); // top row
+  for(int i = p_end-n; i < p_end; ++i) copy_site_data(sites, i, data, &di); // bottom row
 
-  // copy cluster data
+  // copy cluster data along borders
   for(int i = p_start; i < p_start+n; ++i) copy_cluster_data(sites, n, i, seen_cluster_ids, &seen_index, p_stats, data, &di); // top row
   for(int i = p_end-n; i < p_end; ++i) copy_cluster_data(sites, n, i, seen_cluster_ids, &seen_index, p_stats, data, &di); // bottom row
 
@@ -253,7 +253,7 @@ void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short 
 int main(int argc, char *argv[])
 { 
   // all processes do command-line argument parsing
-  double start = omp_get_wtime();
+  double start_init = omp_get_wtime();
 
   int rank, size;
   MPI_Init(&argc, &argv);
@@ -347,6 +347,8 @@ int main(int argc, char *argv[])
     for(int i = 0; i < nt_workers; ++i) t_clusters[i] = calloc(max_clusters(n, np_rows), sizeof(Cluster*));
     int* nt_clusters = calloc(nt_workers, sizeof(int));
 
+    double start_perc = omp_get_wtime();
+
     #pragma omp parallel
     {
       int tid = omp_get_thread_num();
@@ -354,10 +356,14 @@ int main(int argc, char *argv[])
       int nt_rows = get_n_rows(np_rows, tid, nt_workers);
       if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
+    double start_tjoin = omp_get_wtime();
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows, NULL);
+    
     if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
 
     else if(rank == MASTER) {
+      double start_recv = omp_get_wtime();
+      double start_pjoin = omp_get_wtime();
       int num = 0, max = 0, rperc = 0, cperc = 0;
 
       // overall cluster array
@@ -421,9 +427,11 @@ int main(int argc, char *argv[])
           }
           free(data);
         }
+        start_pjoin = omp_get_wtime();
         join_clusters(sites, b, n, n_workers, 0, n, &num);
       }
       // scan clusters
+      double start_scan = omp_get_wtime();
       for(int i = 0; i < n_workers; ++i) {
         for(int j = 0; j < np_clusters[i]; ++j) {
           Cluster *c = p_clusters[i][j];
@@ -432,7 +440,28 @@ int main(int argc, char *argv[])
           if(c->width == n) cperc = 1;
         }
       }
-      printf("Num %d max %d rperc %d cperc %d\n", num, max, rperc, cperc);
+      double end = omp_get_wtime();
+
+      if(verbose) {
+        printf(" Init time %9.6f\n", start_perc-start_init);
+        printf(" Perc time %9.6f\n", start_tjoin-start_perc);
+        printf("Tjoin time %9.6f\n", start_recv-start_tjoin);
+        printf(" Recv time %9.6f\n", start_pjoin-start_recv);
+        printf("Pjoin time %9.6f\n", start_scan-start_pjoin);
+        printf(" Scan time %9.6f\n", end-start_scan);
+        printf("Total time %9.6f\n", end-start_init);
+        printf("\n");
+        printf("   Num clusters: %d\n", num);
+        printf("       Max size: %d\n", max);
+        printf("Row percolation: %s\n", rperc ? "True" : "False");
+        printf("Col percolation: %s\n", cperc ? "True" : "False");
+      }
+      else {
+        printf(
+          "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f\n",
+          n, p, n_workers, n_threads, seed, num, max, rperc, cperc, end-start_init
+        );
+      }
     }
   }
   MPI_Finalize();
