@@ -265,14 +265,15 @@ int main(int argc, char *argv[])
 
   // parse optional arguments
   short site = 1, verbose = 0;
-  char* fname = NULL;
+  char *fname = NULL, *oname = NULL;
   unsigned int seed = time(NULL); // only used by master, could be inconsistent between processes
 
   int c;
-  while ((c = getopt(argc, argv, "vbsf:r:")) != -1) {
+  while ((c = getopt(argc, argv, "vbsf:r:o:")) != -1) {
     if(c == 'v') verbose = 1;              // silence printing
     else if(c == 'b') site = 0;            // bond
     else if(c == 'f') fname = optarg;      // scan lattice from file
+    else if(c == 'o') oname = optarg;      // scan lattice from file
     else if(c == 'r') seed = atoi(optarg); // seed rand with constant
   }
   // parse positional arguments
@@ -455,6 +456,17 @@ int main(int argc, char *argv[])
         printf("       Max size: %d\n", max);
         printf("Row percolation: %s\n", rperc ? "True" : "False");
         printf("Col percolation: %s\n", cperc ? "True" : "False");
+      }
+      else if(oname) {
+        FILE *f = fopen(oname, "a");
+        if(f) { 
+          fprintf(
+            f,
+            "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f\n",
+            n, p, n_workers, n_threads, seed, num, max, rperc, cperc, end-start_init
+          );
+          fclose(f);
+        }
       }
       else {
         printf(
