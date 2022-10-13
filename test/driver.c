@@ -57,11 +57,11 @@ int main(int argc, char *argv[]) {
             // execv("../src/percolate", args);
 
             char *args[] = {"--mpi-pmix", "../src/percolate", "-r", NULL, "-o", NULL, NULL, NULL, NULL, NULL};
-            args[3] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[4], "%d", seed); // same seed for all n_threads
-            args[5] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[6], "%s", ONAME);
+            args[3] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[3], "%d", seed); // same seed for all n_threads
+            args[5] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[5], "%s", ONAME);
             args[6] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[6], "%d", n);
             args[7] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[7], "%f", p);
-            args[8] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[9], "%d", n_threads);
+            args[8] = malloc(ARG_LENGTH*sizeof(char)); sprintf(args[8], "%d", n_threads);
             execv("srun", args);
           }
           else { // parent
