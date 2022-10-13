@@ -1,1 +1,2 @@
 n,p,ncpus,nthreads,seed,num_clusters,max_cluster,rperc,cperc,total_time
+500,0.200000,4,2,462099385,30446,17,0,0,0.473502
