@@ -454,7 +454,7 @@ int main(int argc, char *argv[])
           fclose(f);
         }
       }
-      else if(verbose) {
+      if(verbose) {
         printf(" Init time %9.6f\n", start_perc-start_init);
         printf(" Perc time %9.6f\n", start_tjoin-start_perc);
         printf("Tjoin time %9.6f\n", start_recv-start_tjoin);
