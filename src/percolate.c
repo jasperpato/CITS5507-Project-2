@@ -423,7 +423,8 @@ int main(int argc, char *argv[])
     if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
 
     else if(rank == MASTER) {
-      int num = 0, max = 0; short rperc = 0, cperc = 0;
+      int num = 0, max = 0;
+      short rperc = 0, cperc = 0;
 
       // overall cluster array
       Cluster*** p_clusters = calloc(n_workers, sizeof(Cluster**));
