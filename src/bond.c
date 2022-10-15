@@ -16,10 +16,9 @@
 Bond* bond(int n, float p)
 {
   Bond* b = calloc(1, sizeof(Bond));
-  if(!b) return NULL;
-  b->v = calloc(n*n, sizeof(short));
-  b->h = calloc(n*n, sizeof(short));
-  if(!b->v || !b->h) return NULL;
+  short* s = calloc(2*n*n, sizeof(short));
+  if(!b || !s) return NULL;
+  b->v = s; b->h = s+n*n;
   for(int i = 0; i < n*n; ++i) {
     if((double)rand()/RAND_MAX < p) b->v[i] = 1;
     else b->v[i] = 0; 

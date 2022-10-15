@@ -13,10 +13,9 @@
  */
 Cluster* cluster(int n, int n_threads, int i) {
   Cluster *cl = (Cluster*)calloc(1, sizeof(Cluster));
-  if(!cl) return NULL;
-  cl->rows = (short*)calloc(n, sizeof(short));
-  cl->cols = (short*)calloc(n, sizeof(short));
-  if(!cl->rows || !cl->cols) return NULL;
+  short* s = calloc(2*n, sizeof(short));
+  if(!cl || !s) return NULL;
+  cl->rows = s; cl->cols = s+n;
   cl->id = i;
   cl->rows[i/n] = 1;
   cl->cols[i%n] = 1;
