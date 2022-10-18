@@ -12,5 +12,5 @@ if __name__ == '__main__':
     for p in ps:
       for nc in ncs:
         for nt in nts:
-          args = ['srun', '--mpi=pmix', f'--nodes={nc}', '--ntasks-per-node=1', '../src/percolate', n, p, nt]
+          args = ['srun', '--mpi=pmix', f'--nodes={nc}', '--ntasks-per-node=1', '../src/percolate', str(n), str(p), str(nt)]
           print(run(args, capture_output=True).stdout.decode('utf-8'), end='')
