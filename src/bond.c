@@ -1,6 +1,6 @@
 /*
- * CITS5507 HPC PROJECT 1
- * LATTICE PERCOLATION IN PARALLEL
+ * CITS5507 HPC PROJECT 2
+ * LATTICE PERCOLATION USING MPI AND OPENMP
  * 
  * Jasper Paterson 22736341
  * Allen Antony 22706998
@@ -78,6 +78,9 @@ Bond* file_bond(char* filename, int n)
   return b;
 }
 
+/**
+ * @brief print bond lattice
+ */
 void print_bond(Bond* b, int n)
 {
   if(!b || n > PRINT_CUTOFF || n < 2) return;
@@ -106,10 +109,4 @@ void print_bond(Bond* b, int n)
     ptr += sprintf(ptr, "\n");
   }
   printf("%s", str);
-}
-
-void free_bond(Bond* b) {
-  free(b->v);
-  free(b->h);
-  free(b);
 }

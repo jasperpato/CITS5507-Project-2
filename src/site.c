@@ -1,6 +1,6 @@
 /*
- * CITS5507 HPC PROJECT 1
- * LATTICE PERCOLATION IN PARALLEL
+ * CITS5507 HPC PROJECT 2
+ * LATTICE PERCOLATION USING MPI AND OPENMP
  * 
  * Jasper Paterson 22736341
  * Allen Antony 22706998
@@ -8,6 +8,21 @@
 
 #include "../include/site.h"
 
+/**
+ * @return short* square short array with length n and occupation probability p
+ */
+short* short_array(int n, float p)
+{
+  short *sites = calloc(n*n, sizeof(short));
+  for(int i = 0; i < n*n; ++i) {
+    if((double)rand()/RAND_MAX < p) sites[i] = 1;
+  }
+  return sites;
+}
+
+/** 
+ * @return Site* array of site pointers based on short array
+ */
 Site* site_array(short* a, int n)
 {
   Site* sites = calloc(n*n, sizeof(Site));
@@ -20,15 +35,9 @@ Site* site_array(short* a, int n)
   return sites;
 }
 
-short* short_array(int n, float p)
-{
-  short *sites = calloc(n*n, sizeof(short));
-  for(int i = 0; i < n*n; ++i) {
-    if((double)rand()/RAND_MAX < p) sites[i] = 1;
-  }
-  return sites;
-}
-
+/** 
+ * @return short* site lattice from file
+ */
 short* file_short_array(char* filename, int n) {
   short* s = calloc(n*n, sizeof(short));
   if(!s) return NULL;
@@ -50,6 +59,9 @@ short* file_short_array(char* filename, int n) {
   return s;
 }
 
+/**
+ * @brief print site lattice 
+ */
 void print_short_array(short* a, int n)
 {
   if(!a || n > PRINT_CUTOFF || n < 2) return;
@@ -64,24 +76,6 @@ void print_short_array(short* a, int n)
       for(int i = 0; i < s; ++i) printf(" ");
       if(a[r*n+c]) printf("\033[0;31mX\033[0;30m");
       else printf("O");
-    }
-    printf("\n");
-  }
-}
-
-void print_site_array(Site* a, int n)
-{
-  if(!a || n > PRINT_CUTOFF || n < 2) return;
-  int s = num_digits(n-1);
-  printf("\n ");
-  for(int i = 0; i < s; ++i) printf(" ");
-  for(int c = 0; c < n; ++c) printf("\033[0;34m %*d\033[0;30m", s, c);
-  printf("\n\n");
-  for(int r = 0; r < n; ++r) {
-    printf("\033[0;34m%*d \033[0;30m", s, r);
-    for(int c = 0; c < n; ++c) {
-      for(int i = 0; i < s; ++i) printf(" ");
-      printf("%s%3d%s", a[r*n+c].cluster ? "\033[0;31m" : "", a[r*n+c].cluster ? a[r*n+c].cluster->id : -1, a[r*n+c].cluster ? "\033[0;30m" : "");
     }
     printf("\n");
   }

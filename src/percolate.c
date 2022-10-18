@@ -1,6 +1,6 @@
 /*
  * CITS5507 HPC PROJECT 2
- * LATTICE PERCOLATION IN PARALLEL
+ * LATTICE PERCOLATION USING MPI AND OPENMP
  * 
  * Jasper Paterson 22736341
  * Allen Antony 22706998
@@ -152,10 +152,6 @@ static int bottom_neighbour(Site* sites, Bond* b, int n, int i, int p_start, int
   if(nbi < p_start || nbi >= p_start + n*np_rows) return -1; // in another process's region
   Site *s = &sites[i], *nb = &sites[nbi];
   if((!b && !nb->occupied) || (b && !b->v[nbi])) return -1;
-  if(!s->cluster || !nb->cluster) {
-    printf("Error if here s %p n %p.\n", s->cluster, nb->cluster); // both clusters should have been initialised
-    return -1;
-  }
   if(s->cluster->id == nb->cluster->id) return -1;
   return nbi;
 }
@@ -280,6 +276,9 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, Cluster*** t_cl
   free(data);
 }
 
+/**
+ * @brief print the lattice and percolation parameters
+ */
 void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short site, char* fname, float p, int seed) {
   if(site) print_short_array(a, n);
   else print_bond(b, n);
