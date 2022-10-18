@@ -1,5 +1,4 @@
 from subprocess import run
-from sys import argv
 
 ns = [100,200,300]
 ps = [0.3, 0.7]
