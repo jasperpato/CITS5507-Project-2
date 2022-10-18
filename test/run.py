@@ -1,10 +1,10 @@
 from subprocess import run
 from sys import argv
 
-ns = (100,200,300)
-ps = (0.3, 0.7)
-ncs = (1, 2)
-nts = (1)
+ns = [100,200,300]
+ps = [0.3, 0.7]
+ncs = [1, 2]
+nts = [1]
 
 if __name__ == '__main__':
   
