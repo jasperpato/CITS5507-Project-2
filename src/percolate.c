@@ -22,21 +22,33 @@
 #include "../include/bond.h"
 #include "../include/cluster.h"
 
+/**
+ * @return int start index of region for this id
+ */
 static int get_start(int n, int n_rows, int id, int n_ids)
 {
   return id < n_rows%n_ids ? n*id*(n_rows/n_ids+1) : n*(n_rows%n_ids)*(n_rows/n_ids+1) + n*(id-n_rows%n_ids)*(n_rows/n_ids);
 }
 
+/**
+ * @return int number of rows allocated to this id
+ */
 static int get_n_rows(int n_rows, int id, int n_ids)
 {
   return id < n_rows%n_ids ? n_rows/n_ids+1 : n_rows/n_ids;
 }
 
+/**
+ * @return int max number of clusters that can exist in region
+ */
 static int max_clusters(int n, int n_rows)
 {
   return n_rows*(n/2+1);
 }
 
+/**
+ * @return short 1 iff site has a bond to a neighbour
+ */
 static short has_neighbours(Bond* b, int n, int idx)
 {
   int r = idx/n, c = idx%n;
@@ -52,6 +64,9 @@ static short has_neighbours(Bond* b, int n, int idx)
   return 0;
 }
 
+/**
+ * @brief fill nbs int array with valid neighbour index or -1
+ */
 static void get_neighbours(Site* sites, Bond* b, int nbs[], int idx, int n, int t_start, int t_end, int nt_rows)
 {
   int r = idx/n, c = idx%n;
@@ -83,6 +98,9 @@ static void get_neighbours(Site* sites, Bond* b, int nbs[], int idx, int n, int 
   }
 }
 
+/**
+ * @brief traverse and update current cluster 
+ */
 static void DFS(Site* sites, Bond* b, Stack* st, int n, int t_start, int t_end, int nt_rows, int nt_workers, int p_start, int np_rows) {
   while(!is_empty(st)) {
     int idx = pop(st);
@@ -103,6 +121,9 @@ static void DFS(Site* sites, Bond* b, Stack* st, int n, int t_start, int t_end, 
   }
 }
 
+/**
+ * @brief loop through sites in region and search clusters
+ */
 static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_rows, int nt_workers, int p_start, int np_rows, Cluster** clusters, int* n_clusters)
 {
   int n_sites = n*nt_rows;
@@ -121,6 +142,9 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_
   }
 }
 
+/**
+ * @return int bottom neighbour index if connected else -1
+ */
 static int bottom_neighbour(Site* sites, Bond* b, int n, int i, int p_start, int np_rows)
 {
   int r = i/n, c = i%n;
@@ -144,6 +168,9 @@ void update_cluster(Site *sites, int j, int nbi, Cluster *nc, Cluster *sc) {
   if(j != nbi && c && c->id == nc->id) sites[j].cluster = sc;
 }
 
+/**
+ * @brief loop over borders and connect clusters 
+ */
 static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start, int rows, int* num) {
   for(int w = 0; w < n_workers; ++w) {
     int s_start = start + get_start(n, rows, w, n_workers);
@@ -262,6 +289,9 @@ void print_params(short* a, Bond* b, int n, int n_threads, int n_workers, short 
   fflush(stdout);
 }
 
+/**
+ * @brief receive cluster data from all workers and store in cluster array
+ */
 void recv_clusters(Site* sites, int n, int n_workers, Cluster** p_clusters, int* np_clusters, int* num, int* max, short *cperc)
 {
   int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
@@ -416,10 +446,8 @@ int main(int argc, char *argv[])
       t_clusters[i] = c + offset;
       offset += max_clusters(n, get_n_rows(np_rows, i, nt_workers));
     }
-    int nt_clusters[nt_workers] ;
+    int nt_clusters[nt_workers];
     for(int i = 0; i < nt_workers; ++i) nt_clusters[i] = 0;
-
-    printf("hmm\n");
 
     double start_perc = omp_get_wtime();
 

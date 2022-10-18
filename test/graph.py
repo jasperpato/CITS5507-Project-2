@@ -9,7 +9,7 @@ MUST BE UPDATED FOR N_CPUS
 
 Reads results file and graphs all n_threads on a plot. Keeps either n or p constant as specified.
 
-USAGE: python3 graph.py [-n N | -p P] [--time TIME] [--n-squared] [--n-threads N_THREADS] [--fname RESULTS_FILE]
+USAGE: python3 graph.py [--fname RESULTS_FILE] [-n N | -p P]
 
 N keep lattice size constant at N
 P keep probability constant at P
@@ -22,7 +22,7 @@ from argparse import ArgumentParser
 
 P_RES = 1e-3
 
-RESULTS_FILE = './p2_results_kaya.csv'
+RESULTS_FILE = 'results.csv'
 
 '''
 Returns a list of dictionaries - one for each row in csvfile
@@ -32,86 +32,79 @@ def read_file(fname):
   with open(fname, 'r') as f:
     reader = csv.DictReader(f)
     for row in reader:
-      for i, (k, v) in enumerate(row.items()):
-        if i == 1 or i > 7: row[k] = float(v)
+      for k, v in row.items():
+        if '.' in v: row[k] = float(v)
         else: row[k] = int(v)
       rows.append(row)
   return rows
 
 '''
-Gather data from rows that match the const (could be n or p)
-'''
-def get_data(results, n_threads, const, c, time):
-  x = 'p' if c == 'n' else 'n'
-  data = tuple({} for _ in range(n_threads))
-  for row in results:
-    t = row['n_threads']-1
-    if abs(const-row[c]) < P_RES:
-      if row[x] not in data[t]: data[t][row[x]] = []
-      data[t][row[x]].append(row[time])
-  return data
-
-'''
 Remove total_times that are further than (stds * std) from mean
 '''
-def remove_outliers(data, n_threads, stds=4):
-  count = 0
-  for t in range(n_threads):
-    for y, xs in data[t].items():
+def remove_outliers(data, stds):
+  for d in data.values():
+    for x, times in d.items():
       new = []
-      mean, std = np.mean(xs), np.std(xs)
-      for i, x in enumerate(xs):
-        if abs(x-mean) <= stds*std: new.append(x)
-        else: count += 1
-      data[t][y] = new
-  print(f'Removed data points (stds={stds}): {count}')
+      mean, std = np.mean(times) if times else 0, np.std(times) if times else 0
+      for time in times:
+        if abs(time-mean) <= stds * std: new.append(time)
+      d[x] = new
 
 '''
-Replace lists of data with their mean to be graphed
+Return data mapping x to mean total time
 '''    
-def get_means(data, n_threads):
-  lens, count, min_len, max_len = 0, 0, 0, 0
-  
-  m = tuple({} for _ in range(n_threads))
-  for t in range(n_threads):
-    for k, v in data[t].items():
-      lens += len(v)
-      if len(v) < min_len or min_len == 0: min_len = len(v)
-      if len(v) > max_len: max_len = len(v)
-      count += 1
-      m[t][k] = np.mean(v)
+def average(data):
+  for d in data.values():
+    for x, times in d.items():
+      d[x] = np.mean(times) if times else 0
 
-  print(f'Minimum data points per parameter set: {min_len}')
-
-  return m
+'''
+Gather data from rows that match the const (could be n or p)
+'''
+def get_data(fname, cname, cval, group, stds):
+  results = read_file(fname)
+  x = 'p' if cname == 'n' else 'n'
+  data = {}
+  for row in results:
+    t = tuple(row[g] for g in group)
+    if abs(cval-row[cname]) < P_RES:
+      if t not in data: data[t] = {} # map x to list of times
+      if row[x] not in data[t]: data[t][row[x]] = []
+      data[t][row[x]].append(row['total_time'])
+  remove_outliers(data, stds)
+  average(data)
+  return data
 
 '''
 Graph all n_threads on one axis, keeping either n or p constant
 '''
-def graph(results, n_threads, const, c, time, n_squared=False):
-  data = get_data(results, n_threads, const, c, time)
-  remove_outliers(data, n_threads)
-  m = get_means(data, n_threads)
+def graph(data, cname, cval, group, nsquared):
 
-  for t in range(n_threads):
-    plt.plot([k**2 for k in m[t].keys()] if n_squared else m[t].keys(), m[t].values(), label=f'{t+1}')
-  plt.xlabel('Probability P' if c == 'n' else ('Lattice size N*N' if n_squared else 'Lattice length N'))
+  for t, d in data.items():
+    zs = [(k**2, v) for k, v in d.items()] if nsquared and cname == 'p' else list(d.items())
+    xs, ys = [z[0] for z in zs], [z[1] for z in zs]
+    plt.plot(xs, ys, label=str(t))
+
+  plt.xlabel('Probability P' if cname == 'n' else ('Lattice size N*N' if nsquared else 'Lattice length N'))
   plt.ylabel('Mean total time (s)')
-  plt.title(f"{'Probability P' if c == 'p' else ('Lattice size N*N' if n_squared else 'Lattice length N')} = {const}")
-  plt.legend(title='Num threads')
+  plt.title(f"{'Probability P' if cname == 'p' else ('Lattice size N*N' if nsquared else 'Lattice length N')} = {cval}")
+  plt.legend(title=str(group))
   plt.show(block=True)
 
 if __name__ == '__main__':
   a = ArgumentParser()
   a.add_argument('--fname', default=RESULTS_FILE)
-  a.add_argument('--n-threads', default=4, type=int)
-  a.add_argument('--time', default='total_time', help='Type of time to track. Options = {init_time, perc_time, jointime, scantime, total_time}')
   a.add_argument('-n', type=int)
-  a.add_argument('-p', type=float)
+  a.add_argument('-p', type=float, default=0.4)
+  a.add_argument('-s', type=float, default=4)
   a.add_argument('--n-squared', action='store_true')
-  args = a.parse_args()
-
-  results = read_file(args.fname)
+  args = vars(a.parse_args())
   
-  if(args.n): graph(results, args.n_threads, args.n, 'n', args.time)
-  elif(args.p): graph(results, args.n_threads, args.p, 'p', args.time, args.n_squared)
+  cname = 'n' if args['n'] else 'p'
+  cval = args[cname]
+  group = ('ncpus', 'nthreads')
+
+  data = get_data(args['fname'], cname, cval, group, args['s'])
+  graph(data, cname, cval, group, args['n_squared'])
+
+  
