@@ -1,7 +1,7 @@
 from subprocess import run
 
-ns = [1000,2000]
-ps = [0.3, 0.7]
+ns = [500, 750, 1000]
+ps = [0.3, 0.5, 0.7]
 ncs = [1, 2]
 nts = [1]
 
