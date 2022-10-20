@@ -2,6 +2,7 @@ import subprocess, random
 
 s = '''#!/bin/bash
 #SBATCH --job-name=jp
+#SBATCH --output=/dev/null
 #SBATCH --partition=cits5507
 #SBATCH --nodes={}
 #SBATCH --tasks-per-node=1
@@ -16,14 +17,10 @@ python3 sub.py "$@" >> results.csv
 
 ncs = [1,2,3,4]
 
-loops = 1
 random.seed()
+r = random.randint(0, int(1e6))
 
-l = 0
-while not loops or l < loops:
-  r = str(random.randint(0,10000))
-  for nc in ncs:
-    with open('sub.sh', 'w') as f: f.write(s.format(nc))
-    args = ['sbatch', 'sub.sh', r]
-    subprocess.run(args)
-  l+=1
+for nc in ncs:
+  with open('sub.sh', 'w') as f: f.write(s.format(nc))
+  args = ['sbatch', 'sub.sh', str(r)]
+  subprocess.run(args)
