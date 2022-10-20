@@ -17,9 +17,9 @@ if __name__ == '__main__':
           r = random.randint(0,10000)
           for nc in ncs:
             for nt in nts:
-              args = ['mpirun', '--mpi=pmix', f'--nodes={nc}', f'--ntasks-per-node={nt}', '../src/percolate', '-r', str(r), str(n), str(p), str(nt)]
+              args = ['srun', '--mpi=pmix', f'--nodes={nc}', f'--ntasks-per-node={nt}', '../src/percolate', '-r', str(r), str(n), str(p), str(nt)]
               # args = ['../src/percolate', '-r', str(r), str(n), str(p), str(nt)]
               out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-              f.write(out.stdout.decode('utf-8'))
+              print(out.stdout.decode('utf-8'))
               # print(out.stderr.decode('utf-8'), end='')
               l += 1
