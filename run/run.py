@@ -15,6 +15,6 @@ if __name__ == '__main__':
           for nt in nts:
             # args = ['srun', '--mpi=pmix', f'--nodes={nc}', f'--ntasks-per-node={nt}', '../src/percolate', '-r', str(r), str(n), str(p), str(nt)]
             args = ['../src/percolate', '-r', str(r), str(n), str(p), str(nt)]
-            out = subprocess.run(args, capture_output=True)
+            out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             print(out.stdout.decode('utf-8'), end='')
             print(out.stderr.decode('utf-8'), end='')
