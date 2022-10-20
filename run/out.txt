@@ -1,3 +1,0 @@
-500,0.300000,1,2,10,32014,37,0,0,0.108931
-srun: Warning: can't run 1 processes on 2 nodes, setting nnodes to 1
-500,0.300000,1,2,10,32014,37,0,0,0.076231

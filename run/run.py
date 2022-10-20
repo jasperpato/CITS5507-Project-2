@@ -1,21 +1,29 @@
-import subprocess, random, sys
+import subprocess, random
 
-ns = [500] # range(500,4500,500)
-ps = [0.25] # , 0.5, 0.75]
-nts = [2]
+s = '''#!/bin/bash
+#SBATCH --job-name=jp
+#SBATCH --partition=cits5507
+#SBATCH --nodes={}
+#SBATCH --tasks-per-node=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=59:59
+#SBATCH --mem-per-cpu=4G
 
-LOOPS = 1
-NCPUS = sys.argv[1] if len(sys.argv) > 1 else 1
+module load gcc/9.4.0 openmpi/4.0.5
 
-if __name__ == '__main__':
-  l = 0
-  random.seed()
-  while not LOOPS or l < LOOPS:
-    for n in ns:
-      for p in ps:
-        r = random.randint(0,10000)
-        for nt in nts:
-          args = ['srun', '--mpi=pmix', f'--nodes={NCPUS}', '../src/percolate', '-r', str(r), str(n), str(p), str(nt)]
-          out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          print(out.stdout.decode('utf-8'), end='')
-          l += 1
+python3 sub.py "$@" >> results.csv
+'''
+
+ncs = [1,2,3,4]
+
+loops = 1
+random.seed()
+
+l = 0
+while not loops or l < loops:
+  r = str(random.randint(0,10000))
+  for nc in ncs:
+    with open('sub.sh', 'w') as f: f.write(s.format(nc))
+    args = ['sbatch', 'sub.sh', r]
+    subprocess.run(args)
+  l+=1
