@@ -1,1 +1,0 @@
-slurmstepd: error: *** JOB 47052 ON n010 CANCELLED AT 2022-10-20T17:52:41 ***
