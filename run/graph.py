@@ -42,36 +42,42 @@ def read_file(fname):
 Remove total_times that are further than (stds * std) from mean
 '''
 def remove_outliers(data, stds):
+  outs = 0
   for d in data.values():
     for x, times in d.items():
       new = []
       mean, std = np.mean(times) if times else 0, np.std(times) if times else 0
       for time in times:
         if abs(time-mean) <= stds * std: new.append(time)
+        else: outs += 1
       d[x] = new
+  print(f'Removed outliers: {outs}')
 
 '''
 Return data mapping x to mean total time
 '''    
 def average(data):
+  lens = []
   for d in data.values():
     for x, times in d.items():
+      lens.append(len(times))
       d[x] = np.mean(times) if times else 0
+  print(f'Min data points per parameter set: {min(lens) if lens else 0}')
 
 '''
 Gather data from rows that match the const (could be n or p)
 '''
-def get_data(fname, cname, cval, group, stds):
+def get_data(fname, cname, cval, group, ncpus, nthreads, stds):
   results = read_file(fname)
   x = 'p' if cname == 'n' else 'n'
   data = {}
   for row in results:
     t = tuple(row[g] for g in group)
-    if abs(cval-row[cname]) < P_RES:
+    if abs(cval-row[cname]) < P_RES and (not ncpus or (ncpus and row['ncpus'] == ncpus)) and (not nthreads or (nthreads and row['nthreads'] == nthreads)):
       if t not in data: data[t] = {} # map x to list of times
       if row[x] not in data[t]: data[t][row[x]] = []
       data[t][row[x]].append(row['total_time'])
-  remove_outliers(data, stds)
+  # remove_outliers(data, stds)
   average(data)
   return data
 
@@ -97,6 +103,8 @@ if __name__ == '__main__':
   a.add_argument('-n', type=int)
   a.add_argument('-p', type=float, default=0.4)
   a.add_argument('-s', type=float, default=4)
+  a.add_argument('-t', type=int)
+  a.add_argument('-c', type=int)
   a.add_argument('--n-squared', action='store_true')
   args = vars(a.parse_args())
   
@@ -104,7 +112,7 @@ if __name__ == '__main__':
   cval = args[cname]
   group = ('ncpus', 'nthreads')
 
-  data = get_data(args['fname'], cname, cval, group, args['s'])
+  data = get_data(args['fname'], cname, cval, group, args['c'], args['t'], args['s'])
   graph(data, cname, cval, group, args['n_squared'])
 
   

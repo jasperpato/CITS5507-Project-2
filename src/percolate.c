@@ -343,7 +343,7 @@ void recv_clusters(Site* sites, int n, int n_workers, Cluster** p_clusters, int*
 int main(int argc, char *argv[])
 { 
   // all processes do command-line argument parsing
-  double start_init = omp_get_wtime();
+  double start_init = MPI_Wtime();
 
   int rank, size;
   MPI_Init(&argc, &argv);
@@ -448,7 +448,7 @@ int main(int argc, char *argv[])
     int nt_clusters[nt_workers];
     for(int i = 0; i < nt_workers; ++i) nt_clusters[i] = 0;
 
-    double start_perc = omp_get_wtime();
+    double start_perc = MPI_Wtime();
 
     #pragma omp parallel
     {
@@ -457,7 +457,7 @@ int main(int argc, char *argv[])
       int nt_rows = get_n_rows(np_rows, tid, nt_workers);
       if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, t_clusters[tid], &nt_clusters[tid]);
     }
-    double start_tjoin = omp_get_wtime();
+    double start_tjoin = MPI_Wtime();
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows, NULL);
     
     if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, p_start, p_end);
@@ -481,22 +481,22 @@ int main(int argc, char *argv[])
         }
       }
       // receive cluster data
-      double start_recv = omp_get_wtime();
-      double start_pjoin = omp_get_wtime();
+      double start_recv = MPI_Wtime();
+      double start_pjoin = MPI_Wtime();
       if(n_workers > 1) { 
         recv_clusters(sites, n, n_workers, p_clusters, &np_clusters, &num, &max, &cperc);
-        start_pjoin = omp_get_wtime();
+        start_pjoin = MPI_Wtime();
         join_clusters(sites, b, n, n_workers, 0, n, &num);
       }
       // scan clusters
-      double start_scan = omp_get_wtime();
+      double start_scan = MPI_Wtime();
       for(int j = 0; j < np_clusters; ++j) {
         Cluster *c = p_clusters[j];
         if(c->size > max) max = c->size;
         if(c->height == n) rperc = 1;
         if(c->width == n) cperc = 1;
       }
-      double end = omp_get_wtime();
+      double end = MPI_Wtime();
 
       if(verbose) {
         printf(" Init time %9.6f\n", start_perc-start_init);
