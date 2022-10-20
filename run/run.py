@@ -1,9 +1,9 @@
 import subprocess, random
 
-ns = range(500,4500,500)
-ps = [0.25, 0.5, 0.75]
-ncs = [1,2,3,4]
-nts = [1,2,4]
+ns = [500] # range(500,4500,500)
+ps = [0.25] # , 0.5, 0.75]
+ncs = [2]
+nts = [2]
 
 LOOPS = 1
 
