@@ -21,5 +21,5 @@ if __name__ == '__main__':
               args = ['../src/percolate', '-r', str(r), str(n), str(p), str(nt)]
               out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
               f.write(out.stdout.decode('utf-8'))
-              print(out.stderr.decode('utf-8'), end='')
+              # print(out.stderr.decode('utf-8'), end='')
               l += 1
