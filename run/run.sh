@@ -2,7 +2,7 @@
 #SBATCH --job-name=jp
 #SBATCH --output=out.txt
 #SBATCH --partition=cits5507
-###SBATCH --nodes=4
+#SBATCH --nodes=4
 #SBATCH --tasks-per-node=1
 #SBATCH --cpus-per-task=4
 #SBATCH --time=59:59
