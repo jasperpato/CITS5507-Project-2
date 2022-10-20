@@ -6,3 +6,6 @@
 **/params
 **/driver
 **/log.txt
+
+**/sub.sh
+**/slurm*
