@@ -15,5 +15,5 @@ module load gcc/9.4.0 openmpi/4.0.5
 
 # python3 run.py
 
-srun --mpi=pmix --nodes=1 ../src/percolate -r 10 500 0.3 2
+srun --mpi=pmix --nodes=2 ../src/percolate -r 10 500 0.3 2
 srun --mpi=pmix --nodes=2 ../src/percolate -r 10 500 0.3 2
