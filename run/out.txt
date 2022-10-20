@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "run.py", line 18, in <module>
+    out = subprocess.run(args, capture_output=True)
+  File "/usr/lib64/python3.6/subprocess.py", line 423, in run
+    with Popen(*popenargs, **kwargs) as process:
+TypeError: __init__() got an unexpected keyword argument 'capture_output'
