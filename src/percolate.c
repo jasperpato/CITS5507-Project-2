@@ -514,23 +514,9 @@ int main(int argc, char *argv[])
       }
       else {
         printf(
-          "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f\n",
-          n, p, n_workers, n_threads, seed, num, max, rperc, cperc, end-start_init
+          "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f,%f\n",
+          n, p, n_workers, n_threads, seed, num, max, rperc, cperc, start_perc-start_init, start_tjoin-start_perc, start_recv-start_tjoin, start_pjoin-start_recv, start_scan-start_pjoin, end-start_scan, end-start_init
         );
-      }
-      if(oname) {
-        FILE *f = fopen(oname, "a");
-        if(f) { 
-          fprintf(
-            f,
-            "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f\n",
-            n, p, n_workers, n_threads, seed, num, max, rperc, cperc, end-start_init
-          );
-          fclose(f);
-        }
-        else {
-          printf("Results file error.\n");
-        }
       }
     }
   }

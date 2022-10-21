@@ -1,10 +1,10 @@
 import subprocess, random, sys
 
-ns = [10000] # range(500,3500,500)
-ps = [0.75] # , 0.5, 0.75]
-nts = [1,2,4]
+ns = [2000] # range(500,3500,500)
+ps = [0.5] # , 0.5, 0.75]
+nts = [2]
 
-r = sys.argv[1]
+r = sys.argv[1] if len(sys.argv) > 1 else '10'
 
 for n in ns:
   for p in ps:
@@ -12,3 +12,4 @@ for n in ns:
       args = ['srun', '--mpi=pmix', '../src/percolate', '-r', r, str(n), str(p), str(nt)]
       out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       print(out.stdout.decode('utf-8'), end='')
+      print(out.stderr.decode('utf-8'), end='')
