@@ -11,11 +11,6 @@
 
 #include <stdlib.h>
 
-typedef struct Cluster {
-  short *rows, *cols;
-  int id, size, height, width;
-} Cluster;
-
-Cluster* cluster(int, int, int);
+int* cluster(int, int);
 
 #endif

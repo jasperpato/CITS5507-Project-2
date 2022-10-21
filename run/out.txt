@@ -1,0 +1,41 @@
+make: Nothing to be done for 'all'.
+NT 1
+   Num clusters: 9
+       Max size: 121
+Row percolation: True
+Col percolation: True
+NT 2
+   Num clusters: 9
+       Max size: 121
+Row percolation: True
+Col percolation: True
+NT 3
+   Num clusters: 9
+       Max size: 121
+Row percolation: True
+Col percolation: True
+NT 4
+   Num clusters: 9
+       Max size: 121
+Row percolation: True
+Col percolation: True
+NT 5
+   Num clusters: 9
+       Max size: 121
+Row percolation: True
+Col percolation: True
+NT 6
+   Num clusters: 9
+       Max size: 121
+Row percolation: True
+Col percolation: True
+NT 7
+   Num clusters: 9
+       Max size: 121
+Row percolation: True
+Col percolation: True
+NT 8
+   Num clusters: 9
+       Max size: 121
+Row percolation: True
+Col percolation: True
