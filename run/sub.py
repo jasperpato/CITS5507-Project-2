@@ -2,12 +2,11 @@ import subprocess, random, sys
 
 file = 'results.csv'
 
-ns = range(500,2500,500)
-ps = [0.25, 0.5, 0.75]
-nts = [1, 2]
+ns = [500] # range(500,2500,500)
+ps = [0.25] # , 0.5, 0.75]
+nts = [1, 2, 3, 4]
 
 random.seed()
-
 
 for n in ns:
   for p in ps:

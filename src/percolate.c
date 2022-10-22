@@ -121,9 +121,39 @@ static void DFS(Site* sites, Bond* b, Stack* st, int n, int t_start, int t_end, 
 }
 
 /**
+ * @return short 1 iff cluster lies on thread border
+*/
+short on_border(Site *sites, int* sc, int n, int t_start, int t_end)
+{
+  for(int j = t_start; j < t_start+n; ++j) { // top row
+    if(sites[j].cluster == sc) return 1;
+  }
+  for(int j = t_end-n; j < t_end; ++j) { // bottom row
+    if(sites[j].cluster == sc) return 1;
+  }
+  return 0;
+}
+
+/**
+ * @brief update num clusters, max size, rperc and cperc
+*/
+void update_stats(int* sc, int n, int* num, int* max, int* rperc, int* cperc)
+{
+  if(num) ++(*num);
+  if(max && sc[1] > *max) *max = sc[1];
+  int rs = 0; cs = 0;
+  for(int j = 0; j < n; ++j) {
+    if(rperc && sc[2+j]) ++rs;
+    if(cperc && sc[2+n+j]) ++cs;
+  }
+  if(rperc && rs == n) *rperc = 1;
+  if(cperc && cs == n) *cperc = 1;
+}
+
+/**
  * @brief loop through sites in region and search clusters
  */
-static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_rows, int nt_workers, int p_start, int np_rows, int** clusters, int* n_clusters)
+static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_rows, int nt_workers, int p_start, int np_rows, int** clusters, int* n_clusters, int* num, int* max, short* cperc)
 {
   int n_sites = n*nt_rows;
   int t_end = t_start + n_sites;
@@ -134,24 +164,11 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_
       s->seen = 1;
       s->cluster = cluster(n, i);
       int *sc = s->cluster;
-      clusters[(*n_clusters)++] = sc; 
       add(st, i);
       DFS(sites, b, st, n, t_start, t_end, nt_rows, nt_workers, p_start, np_rows);
-
-      // if not touching a border, take stats and free memory
-      // short on_border = 0;
-      // for(int i = t_start; i < t_start+n; ++i) { // top row
-      //   if(sites[i].cluster == sc) {
-      //     on_border = 1; 
-      //     break;
-      //   }
-      // }
-      // for(int i = t_end-n; i < t_end; ++i) { // top row
-      //   if(sites[i].cluster == sc) {
-      //     on_border = 1; 
-      //     break;
-      //   }
-      // }
+      update_stats(sc, n, num, max, NULL, cperc);
+      if(on_border(sites, sc, n, t_start, t_end)) clusters[(*n_clusters)++] = sc; 
+      else free(sc);
     }   
   }
   free_stack(st);
@@ -214,7 +231,7 @@ static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start,
       nc[0] = -1; // mark as obsolete
       nb->cluster = sc; // now overwrite neighbour
 
-      if(num) --(*num);
+      if(num) --(*num); // two clusters become one
     }
   }
 }
@@ -247,23 +264,17 @@ void copy_cluster_data(Site* sites, int n, int i, int* seen_cluster_ids, int* se
 /**
  * @brief Send all relevant information from worker to master
  */
-void send_clusters(int rank, Site* sites, int n, int nt_workers, int** t_clusters, int* nt_clusters, int mc, int p_start, int p_end)
+void send_clusters(int rank, Site* sites, int n, int nt_workers, int** t_clusters, int* nt_clusters, int mc, int p_start, int p_end, int num)
 {
   int c_size = 2+2*n;
   int *data = calloc(4 + 2*n + c_size*(n+2), sizeof(int));
   int di = 4;
-
+  
+  data[0] = num;
   for(int tid = 0; tid < nt_workers; ++tid) {
     for(int i = 0; i < nt_clusters[tid]; ++i) {
       int *c = (t_clusters + mc*tid)[i];
-      if(c[0] == -1) continue;
-      data[0]++;
-      if(c[1] > data[1]) data[1] = c[1];
-      int cperc = 0;
-      for(int j = 0; j < n; ++j) {
-        if(c[2+n+j]) ++cperc;
-      }
-      if(cperc == n) data[2] = 1;
+      update_stats(c, n, NULL, &data[1], &data[2], NULL);
     }
   }
 
@@ -291,7 +302,7 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, int** t_cluster
 void recv_clusters(Site* sites, int n, int n_workers, int** p_clusters, int* np_clusters, int* num, int* max, short *cperc)
 {
   int c_size = 2+2*n;
-  int d_size = 0;
+  int d_size = 0; // ints required to store all worker's clusters
 
   int* data = malloc((n_workers-1) * (4+2*n) * sizeof(int));
   
@@ -383,7 +394,7 @@ int main(int argc, char *argv[])
 
   if((fname && argc - optind < 1) || (!fname && argc - optind < 2)) {
     printf("Missing arguments.\n");
-    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); // exit(errno);
+    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
   n = atoi(argv[optind++]);
   if(!fname) p = atof(argv[optind++]);
@@ -391,7 +402,7 @@ int main(int argc, char *argv[])
 
   if(n < 1 || n_threads < 1) {
     printf("Invalid arguments.\n");
-    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE); // exit(errno);
+    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
   // check n_threads
   int max_threads = omp_get_max_threads();
@@ -452,34 +463,37 @@ int main(int argc, char *argv[])
 
     double start_perc = MPI_Wtime();
 
+    // local stats
+    int nums[nt_workers], maxs[nt_workers];
+    for(int i = 0; i < nt_workers; ++i) {
+      nums[i] = 0; maxs[i] = 0;
+    }
+
+    // process stats
+    int num = 0, max = 0;
+    short rperc = 0, cperc = 0;
+
     #pragma omp parallel
     {
       int tid = omp_get_thread_num();
       int t_start = p_start + get_start(n, np_rows, tid, nt_workers);
       int nt_rows = get_n_rows(np_rows, tid, nt_workers);
-      if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, &t_clusters[mc*tid], &nt_clusters[tid]);
+      if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, &t_clusters[mc*tid], &nt_clusters[tid], &nums[tid], &maxs[tid], &cperc);
     }
+
+    // update process stats
+    for(int i = 0; i < nt_workers; ++i) {
+      num += nums[i];
+      if(maxs[i] > max) max = maxs[i];
+    }
+
     double start_tjoin = MPI_Wtime();
+    if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows, &num);
 
-    if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows, NULL);
-
-    if(rank > MASTER) {
-      send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, mc, p_start, p_end);
-    }
+    if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, mc, p_start, p_end, num);
 
     else if(rank == MASTER) {
-      int num = 0, max = 0;
-      short rperc = 0, cperc = 0;
-
       int c_size = 2+2*n;
-
-      // scan master's clusters for num
-      for(int tid = 0; tid < nt_workers; ++tid) {
-        for(int i = 0; i < nt_clusters[tid]; ++i) {
-          int *sc = (t_clusters + mc*tid)[i];
-          if(sc[0] != -1) ++num;
-        }
-      }
 
       double start_recv = MPI_Wtime();
       double start_pjoin = MPI_Wtime();
@@ -501,16 +515,7 @@ int main(int argc, char *argv[])
         // scan workers' clusters
         for(int i = 0; i < np_clusters; ++i) {
           int *sc = &p_clusters[c_size*i];
-          if(sc[0] != -1) {
-            if(sc[1] > max) max = sc[1];
-            int r = 0, c = 0;
-            for(int j = 0; j < n; ++j) {
-              if(sc[2+j]) ++r;
-              if(sc[2+n+j]) ++c;
-            }
-            if(r == n) rperc = 1;
-            if(c == n) cperc = 1;
-          }
+          if(sc[0] != -1) update_stats(sc, n, NULL, &max, &rperc, &cperc);
         }
         // free(p_clusters);
       }
@@ -519,16 +524,7 @@ int main(int argc, char *argv[])
       for(int tid = 0; tid < nt_workers; ++tid) {
         for(int i = 0; i < nt_clusters[tid]; ++i) {
           int *sc = (t_clusters + mc*tid)[i];
-          if(sc[0] != -1) {
-            if(sc[1] > max) max = sc[1];
-            int r = 0, c = 0;
-            for(int j = 0; j < n; ++j) {
-              if(sc[2+j]) ++r;
-              if(sc[2+n+j]) ++c;
-            }
-            if(r == n) rperc = 1;
-            if(c == n) cperc = 1;
-          }
+          if(sc[0] != -1) update_stats(sc, n, NULL, &max, &rperc, &cperc);
           // free(sc);
         }
       }
@@ -553,7 +549,6 @@ int main(int argc, char *argv[])
       else {
         printf(
           "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f\n",
-          //"%5d,%f,%d,%2d,%10d,%10d,%10d,%1d,%1d,%f,%f,%f,%f,%f,%f\n",
           n, p, n_workers, n_threads, seed, num, max, rperc, cperc, start_perc-start_init, start_tjoin-start_perc, start_recv-start_tjoin, start_pjoin-start_recv, end_pjoin-start_pjoin, end-start_init
         );
       }
