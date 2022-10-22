@@ -139,6 +139,7 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_
       DFS(sites, b, st, n, t_start, t_end, nt_rows, nt_workers, p_start, np_rows);
     }   
   }
+  free_stack(st);
 }
 
 /**
@@ -198,7 +199,7 @@ static void join_clusters(Site* sites, Bond* b, int n, int n_workers, int start,
       nc[0] = -1; // mark as obsolete
       nb->cluster = sc; // now overwrite neighbour
 
-      if(num) --(*num); // decrement total number of clusters when a join happens
+      if(num) --(*num);
     }
   }
 }
@@ -216,14 +217,15 @@ void copy_site_data(Site* sites, int i, int* data, int* di)
 /**
  * @brief pack unique cluster data into int array
  */
-void copy_cluster_data(Site* sites, int n, int i, int* seen_cluster_ids, int* seen_index, int* p_stats, int* data, int* di)
+void copy_cluster_data(Site* sites, int n, int i, int* seen_cluster_ids, int* seen_index, int* data, int* di)
 {
+  int c_size = 2+2*n;
   int *c = sites[i].cluster;
   if(c && c[0] != -1 && !in_array(c[0], seen_cluster_ids, *seen_index)) {
     seen_cluster_ids[(*seen_index)++] = c[0];
-    p_stats[3]++;
-    memcpy(&data[*di], c, 2+2*n);
-    *di += 2+2*n;
+    data[3]++;
+    memcpy(&data[*di], c, c_size * sizeof(int));
+    *di += c_size;
   }
 }
 
@@ -232,91 +234,79 @@ void copy_cluster_data(Site* sites, int n, int i, int* seen_cluster_ids, int* se
  */
 void send_clusters(int rank, Site* sites, int n, int nt_workers, int** t_clusters, int* nt_clusters, int mc, int p_start, int p_end)
 {
-  int *data = calloc(4+2*n, sizeof(int)); // num clusters, max cluster size, col perc boolean, num border clusters
+  int c_size = 2+2*n;
+  int *data = calloc(4 + 2*n + c_size*(n+2), sizeof(int));
   int di = 4;
 
   for(int tid = 0; tid < nt_workers; ++tid) {
     for(int i = 0; i < nt_clusters[tid]; ++i) {
-      int *c = (&t_clusters[tid*mc])[i];
+      int *c = (t_clusters + mc*tid)[i];
       if(c[0] == -1) continue;
       data[0]++;
-      if(c[1] > p_stats[1]) data[1] = c[1];
+      if(c[1] > data[1]) data[1] = c[1];
       int cperc = 0;
       for(int j = 0; j < n; ++j) {
-        if(c[2+n+j]) ++r;
+        if(c[2+n+j]) ++cperc;
       }
       if(cperc == n) data[2] = 1;
     }
   }
-  int nc_attrs = 2 + 2*n; // number of ints that describe a cluster
 
   // copy site data along borders
   for(int i = p_start; i < p_start+n; ++i) copy_site_data(sites, i, data, &di); // top row
   for(int i = p_end-n; i < p_end; ++i) copy_site_data(sites, i, data, &di); // bottom row
-
-  // HERE
-
-  // cluster data
-  int *data = calloc(2*n + nc_attrs*(n+2), sizeof(int));
-  int di = 0;
 
   // seen clusters
   int seen_cluster_ids[n+2];
   int seen_index = 0;
 
   // copy cluster data along borders
-  for(int i = p_start; i < p_start+n; ++i) copy_cluster_data(sites, n, i, seen_cluster_ids, &seen_index, p_stats, data, &di); // top row
-  for(int i = p_end-n; i < p_end; ++i) copy_cluster_data(sites, n, i, seen_cluster_ids, &seen_index, p_stats, data, &di); // bottom row
+  for(int i = p_start; i < p_start+n; ++i) copy_cluster_data(sites, n, i, seen_cluster_ids, &seen_index, data, &di); // top row
+  for(int i = p_end-n; i < p_end; ++i) copy_cluster_data(sites, n, i, seen_cluster_ids, &seen_index, data, &di); // bottom row
 
-  MPI_Send(p_stats, 4, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
-  MPI_Send(data, 2*n + nc_attrs*p_stats[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
+  MPI_Send(data, 4+2*n, MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
+  MPI_Send(data + 4+2*n, c_size * data[3], MPI_INT, MASTER, TAG, MPI_COMM_WORLD);
+  
   free(data);
 }
 
 /**
  * @brief receive cluster data from all workers and store in cluster array
  */
-void recv_clusters(Site* sites, int n, int n_workers, Cluster** p_clusters, int* np_clusters, int* num, int* max, short *cperc)
+void recv_clusters(Site* sites, int n, int n_workers, int* p_clusters, int* np_clusters, int* num, int* max, short *cperc)
 {
-  int nc_attrs = 4 + 2*n; // number of ints that describes a cluster
-  int p_stats[4]; // num clusters, max cluster size, col perc, num border clusters
-  int *data;
+  int c_size = 2+2*n;
   for(int i = 0; i < n_workers-1; ++i) {
-    MPI_Recv(p_stats, 4, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    int d_size = 2*n + nc_attrs*p_stats[3];
-    data = calloc(d_size, sizeof(int));
-    MPI_Recv(data, d_size, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    
+    int* data = malloc((4 + 2*n) * sizeof(int));
+
+    MPI_Recv(data, 4 + 2*n, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    
+    MPI_Recv(p_clusters + c_size*(*np_clusters), c_size * data[3], MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    *np_clusters += data[3];
 
     // num clusters, max cluster size and cperc
-    *num += p_stats[0];
-    if(p_stats[1] > *max) *max = p_stats[1];
-    if(p_stats[2]) *cperc = 1;
+    *num += data[0];
+    if(data[1] > *max) *max = data[1];
+    if(data[2]) *cperc = 1;
 
-    // convert worker data into clusters and add to array
-    for(int j = 2*n; j < d_size; j+=nc_attrs) { // loop through process clusters
-      Cluster *c = calloc(1, sizeof(Cluster));
-      short* s = calloc(2*n, sizeof(short));
-      c->rows = s; c->cols = s+n;
-      c->id = data[j]; c->size = data[j+1]; c->width = data[j+2]; c->height = data[j+3];
-      for(int k = 0; k < n; ++k) c->rows[k] = data[j+4+k];
-      for(int k = 0; k < n; ++k) c->cols[k] = data[j+n+4+k];
-      p_clusters[(*np_clusters)++] = c;
-    }
     // add site cluster pointers to sites
     int p_start = get_start(n, n, i+1, n_workers);
     int p_end = p_start + n*get_n_rows(n, i+1, n_workers);
+    
     for(int j = p_start; j < p_start+n; ++j) { // top row
       for(int k = 0; k < *np_clusters; ++k) {
-        if(p_clusters[k]->id == data[j-p_start]) {
-          sites[j].cluster = p_clusters[k];
+        if((p_clusters + c_size*k)[0] == data[4+j-p_start]) {
+          sites[j].cluster = p_clusters + c_size*k;
           break;
         }
       }
     }
+
     for(int j = p_end-n; j < p_end; ++j) { // bottom row
       for(int k = 0; k < *np_clusters; ++k) {
-        if(p_clusters[k]->id == data[j-p_end+2*n]) {
-          sites[j].cluster = p_clusters[k];
+        if((p_clusters + c_size*k)[0] == data[4+j-p_end+2*n]) {
+          sites[j].cluster = p_clusters + c_size*k;
           break;
         }
       }
@@ -444,49 +434,84 @@ int main(int argc, char *argv[])
       int tid = omp_get_thread_num();
       int t_start = p_start + get_start(n, np_rows, tid, nt_workers);
       int nt_rows = get_n_rows(np_rows, tid, nt_workers);
-      if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, &t_clusters[tid*mc], &nt_clusters[tid]);
+      if(tid < nt_workers) percolate(sites, b, n, tid, t_start, nt_rows, nt_workers, p_start, np_rows, &t_clusters[mc*tid], &nt_clusters[tid]);
     }
     double start_tjoin = MPI_Wtime();
+
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows, NULL);
-    
-    if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, mc, p_start, p_end);
+
+    if(rank > MASTER) {
+      send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, mc, p_start, p_end);
+    }
 
     else if(rank == MASTER) {
       int num = 0, max = 0;
       short rperc = 0, cperc = 0;
 
-      // overall cluster array
-      int* p_clusters = calloc(2+2*n * max_clusters(n, n), sizeof(int));
-      int pi = 0;
-      
-      // receive cluster data
-      double start_recv = MPI_Wtime();
-      if(n_workers > 1) recv_clusters(sites, n, n_workers, p_clusters, &np_clusters, &num, &max, &cperc);
+      int c_size = 2+2*n;
 
-      // condense master clusters into first array
+      // scan master's clusters for num
       for(int tid = 0; tid < nt_workers; ++tid) {
         for(int i = 0; i < nt_clusters[tid]; ++i) {
-          int *c = t_clusters[tid][i];
-          if(c[0] != -1) {
-            memcpy(&p_clusters[pi], c, 2+2*n);
-            pi += 2+2*n;
-          }
-          free(c);
+          int *sc = (t_clusters + mc*tid)[i];
+          if(sc[0] != -1) ++num;
         }
       }
 
-      // join clusters
+      double start_recv = MPI_Wtime();
       double start_pjoin = MPI_Wtime();
-      if(n_workers > 1) join_clusters(sites, b, n, n_workers, 0, n, &num);
+      double end_pjoin = MPI_Wtime();
 
-      // scan clusters
-      double start_scan = MPI_Wtime();
-      for(int j = 0; j < np_clusters; ++j) {
-        Cluster *c = p_clusters[j];
-        if(c->size > max) max = c->size;
-        if(c->height == n) rperc = 1;
-        if(c->width == n) cperc = 1;
+      if(n_workers > 1) {
+
+        // receive cluster data
+        start_recv = MPI_Wtime();
+        int* p_clusters = malloc(c_size * (n_workers-1)*(n+2) * sizeof(int));
+        int np_clusters = 0;
+        recv_clusters(sites, n, n_workers, p_clusters, &np_clusters, &num, &max, &cperc);
+
+        // join process regions
+        start_pjoin = MPI_Wtime();
+        join_clusters(sites, b, n, n_workers, 0, n, &num);
+        end_pjoin = MPI_Wtime();
+
+        // scan workers' clusters
+        for(int i = 0; i < np_clusters; ++i) {
+          int *sc = &p_clusters[c_size*i];
+          if(sc[0] != -1) {
+            if(sc[1] > max) max = sc[1];
+            int r = 0, c = 0;
+            for(int j = 0; j < n; ++j) {
+              if(sc[2+j]) ++r;
+              if(sc[2+n+j]) ++c;
+            }
+            if(r == n) rperc = 1;
+            if(c == n) cperc = 1;
+          }
+        }
+        free(p_clusters);
       }
+
+      // scan master's clusters
+      for(int tid = 0; tid < nt_workers; ++tid) {
+        for(int i = 0; i < nt_clusters[tid]; ++i) {
+          int *sc = (t_clusters + mc*tid)[i];
+          if(sc[0] != -1) {
+            if(sc[1] > max) max = sc[1];
+            int r = 0, c = 0;
+            for(int j = 0; j < n; ++j) {
+              if(sc[2+j]) ++r;
+              if(sc[2+n+j]) ++c;
+            }
+            if(r == n) rperc = 1;
+            if(c == n) cperc = 1;
+          }
+          free(sc);
+        }
+      }
+      free(sites);
+      if(b) free_bond(b);
+
       double end = MPI_Wtime();
 
       if(verbose) {
@@ -494,8 +519,7 @@ int main(int argc, char *argv[])
         printf(" Perc time %9.6f\n", start_tjoin-start_perc);
         printf("Tjoin time %9.6f\n", start_recv-start_tjoin);
         printf(" Recv time %9.6f\n", start_pjoin-start_recv);
-        printf("Pjoin time %9.6f\n", start_scan-start_pjoin);
-        printf(" Scan time %9.6f\n", end-start_scan);
+        printf("Pjoin time %9.6f\n", end_pjoin-start_pjoin);
         printf("Total time %9.6f\n", end-start_init);
         printf("\n");
         printf("   Num clusters: %d\n", num);
@@ -505,12 +529,13 @@ int main(int argc, char *argv[])
       }
       else {
         printf(
-          "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f,%f\n",
-          n, p, n_workers, n_threads, seed, num, max, rperc, cperc, start_perc-start_init, start_tjoin-start_perc, start_recv-start_tjoin, start_pjoin-start_recv, start_scan-start_pjoin, end-start_scan, end-start_init
+          "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f\n",
+          n, p, n_workers, n_threads, seed, num, max, rperc, cperc, start_perc-start_init, start_tjoin-start_perc, start_recv-start_tjoin, start_pjoin-start_recv, end_pjoin-start_pjoin, end-start_init
         );
       }
     }
   }
+  fflush(stdout);
   MPI_Finalize();
-  exit(EXIT_SUCCESS); 
+  exit(EXIT_SUCCESS);
 }

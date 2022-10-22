@@ -26,4 +26,6 @@ Bond* file_bond(char*, int);
 
 void print_bond(Bond*, int);
 
+void free_bond(Bond*);
+
 #endif
