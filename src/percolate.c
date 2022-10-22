@@ -44,7 +44,7 @@ static int get_n_rows(int n_rows, int id, int n_ids)
  */
 static int max_clusters(int n, int n_rows)
 {
-  return n_rows*(n/2+1);
+  return n_rows*(n/2);
 }
 
 /**
@@ -137,6 +137,21 @@ static void percolate(Site* sites, Bond* b, int n, int tid, int t_start, int nt_
       clusters[(*n_clusters)++] = sc; 
       add(st, i);
       DFS(sites, b, st, n, t_start, t_end, nt_rows, nt_workers, p_start, np_rows);
+
+      // if not touching a border, take stats and free memory
+      // short on_border = 0;
+      // for(int i = t_start; i < t_start+n; ++i) { // top row
+      //   if(sites[i].cluster == sc) {
+      //     on_border = 1; 
+      //     break;
+      //   }
+      // }
+      // for(int i = t_end-n; i < t_end; ++i) { // top row
+      //   if(sites[i].cluster == sc) {
+      //     on_border = 1; 
+      //     break;
+      //   }
+      // }
     }   
   }
   free_stack(st);
@@ -273,31 +288,39 @@ void send_clusters(int rank, Site* sites, int n, int nt_workers, int** t_cluster
 /**
  * @brief receive cluster data from all workers and store in cluster array
  */
-void recv_clusters(Site* sites, int n, int n_workers, int* p_clusters, int* np_clusters, int* num, int* max, short *cperc)
+void recv_clusters(Site* sites, int n, int n_workers, int** p_clusters, int* np_clusters, int* num, int* max, short *cperc)
 {
   int c_size = 2+2*n;
-  for(int i = 0; i < n_workers-1; ++i) {
-    
-    int* data = malloc((4 + 2*n) * sizeof(int));
+  int d_size = 0;
 
-    MPI_Recv(data, 4 + 2*n, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    
-    MPI_Recv(p_clusters + c_size*(*np_clusters), c_size * data[3], MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    *np_clusters += data[3];
+  int* data = malloc((n_workers-1) * (4+2*n) * sizeof(int));
+  
+  for(int i = 0; i < n_workers-1; ++i) {
+    int *d = data + i * (4+2*n);
+    MPI_Recv(d, 4+2*n, MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    d_size += c_size * d[3];
+  }
+
+  *p_clusters = malloc(d_size * sizeof(int));
+
+  for(int i = 0; i < n_workers-1; ++i) {
+    int *d = data + i * (4+2*n);
+    MPI_Recv(*p_clusters + c_size*(*np_clusters), c_size * d[3], MPI_INT, i+1, TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    *np_clusters += d[3];
 
     // num clusters, max cluster size and cperc
-    *num += data[0];
-    if(data[1] > *max) *max = data[1];
-    if(data[2]) *cperc = 1;
+    *num += d[0];
+    if(d[1] > *max) *max = d[1];
+    if(d[2]) *cperc = 1;
 
     // add site cluster pointers to sites
     int p_start = get_start(n, n, i+1, n_workers);
     int p_end = p_start + n*get_n_rows(n, i+1, n_workers);
-    
+
     for(int j = p_start; j < p_start+n; ++j) { // top row
       for(int k = 0; k < *np_clusters; ++k) {
-        if((p_clusters + c_size*k)[0] == data[4+j-p_start]) {
-          sites[j].cluster = p_clusters + c_size*k;
+        if((*p_clusters + c_size*k)[0] == d[4+j-p_start]) {
+          sites[j].cluster = *p_clusters + c_size*k;
           break;
         }
       }
@@ -305,14 +328,14 @@ void recv_clusters(Site* sites, int n, int n_workers, int* p_clusters, int* np_c
 
     for(int j = p_end-n; j < p_end; ++j) { // bottom row
       for(int k = 0; k < *np_clusters; ++k) {
-        if((p_clusters + c_size*k)[0] == data[4+j-p_end+2*n]) {
-          sites[j].cluster = p_clusters + c_size*k;
+        if((*p_clusters + c_size*k)[0] == d[4+j-p_end+2*n]) {
+          sites[j].cluster = *p_clusters + c_size*k;
           break;
         }
       }
     }
-    free(data);
   }
+  free(data);
 }
 
 /**
@@ -466,9 +489,9 @@ int main(int argc, char *argv[])
 
         // receive cluster data
         start_recv = MPI_Wtime();
-        int* p_clusters = malloc(c_size * (n_workers-1)*(n+2) * sizeof(int));
+        int* p_clusters = NULL; // malloc(c_size * (n_workers-1)*(n+2) * sizeof(int));
         int np_clusters = 0;
-        recv_clusters(sites, n, n_workers, p_clusters, &np_clusters, &num, &max, &cperc);
+        recv_clusters(sites, n, n_workers, &p_clusters, &np_clusters, &num, &max, &cperc);
 
         // join process regions
         start_pjoin = MPI_Wtime();
@@ -529,8 +552,8 @@ int main(int argc, char *argv[])
       }
       else {
         printf(
-          // "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f\n",
-          "%5d,%f,%d,%2d,%10d,%10d,%10d,%1d,%1d,%f,%f,%f,%f,%f,%f\n",
+          "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f\n",
+          //"%5d,%f,%d,%2d,%10d,%10d,%10d,%1d,%1d,%f,%f,%f,%f,%f,%f\n",
           n, p, n_workers, n_threads, seed, num, max, rperc, cperc, start_perc-start_init, start_tjoin-start_perc, start_recv-start_tjoin, start_pjoin-start_recv, end_pjoin-start_pjoin, end-start_init
         );
       }
