@@ -489,7 +489,7 @@ int main(int argc, char *argv[])
             if(c == n) cperc = 1;
           }
         }
-        free(p_clusters);
+        // free(p_clusters);
       }
 
       // scan master's clusters
@@ -506,11 +506,11 @@ int main(int argc, char *argv[])
             if(r == n) rperc = 1;
             if(c == n) cperc = 1;
           }
-          free(sc);
+          // free(sc);
         }
       }
-      free(sites);
-      if(b) free_bond(b);
+      // free(sites);
+      // if(b) free_bond(b);
 
       double end = MPI_Wtime();
 
@@ -529,7 +529,8 @@ int main(int argc, char *argv[])
       }
       else {
         printf(
-          "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f\n",
+          // "%d,%f,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f\n",
+          "%5d,%f,%d,%2d,%10d,%10d,%10d,%1d,%1d,%f,%f,%f,%f,%f,%f\n",
           n, p, n_workers, n_threads, seed, num, max, rperc, cperc, start_perc-start_init, start_tjoin-start_perc, start_recv-start_tjoin, start_pjoin-start_recv, end_pjoin-start_pjoin, end-start_init
         );
       }
