@@ -7,7 +7,6 @@ s = '''#!/bin/bash
 #SBATCH --nodes={}
 #SBATCH --tasks-per-node=1
 #SBATCH --cpus-per-task=8
-#SBATCH --time=59:59
 #SBATCH --mem-per-cpu=4G
 
 module load gcc/9.4.0 openmpi/4.0.5
