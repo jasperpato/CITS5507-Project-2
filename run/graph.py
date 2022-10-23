@@ -118,7 +118,10 @@ if __name__ == '__main__':
   cval = args[cname]
   group = ('ncpus', 'nthreads')
 
-  data = get_data(args['fname'], cname, cval, group, [int(c) for c in args['c'].split(',')], [int(t) for t in args['t'].split(',')], args['s'])
+  [int(c) for c in args['c'].split(',')] if args['c'] else None
+  nthreads = [int(t) for t in args['t'].split(',')] if args['t'] else None
+
+  data = get_data(args['fname'], cname, cval, group, ncpus, nthreads, args['s'])
   graph(data, cname, cval, group, args['n_squared'])
 
   
