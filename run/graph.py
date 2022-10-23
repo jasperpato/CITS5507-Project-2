@@ -5,8 +5,6 @@ LATTICE PERCOLATION IN PARALLEL
 Jasper Paterson 22736341
 Allen Antony 22706998
 
-MUST BE UPDATED FOR N_CPUS
-
 Reads results file and graphs all n_threads on a plot. Keeps either n or p constant as specified.
 
 USAGE: python3 graph.py [--fname RESULTS_FILE] [-n N | -p P]
@@ -70,7 +68,7 @@ Gather data from rows that match the const (could be n or p)
 '''
 def get_data(fname, cname, cval, group, ncpus, nthreads, stds):
   results = []
-  for nc in ncs: results.extend(read(fname))
+  for nc in ncs: results.extend(read(fname.format(nc)))
   x = 'p' if cname == 'n' else 'n'
   data = {}
   for row in results:
