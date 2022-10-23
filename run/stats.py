@@ -27,4 +27,5 @@ if __name__ == '__main__':
     t = tuple(r[p] for p in params)
     d[t] = d.get(t, 0) + 1
 
-  for t, c in sorted(d.items(), key=lambda x: (x[1], x[0])): print(f'{t}: {c}')
+  for t, c in sorted(d.items(), key=lambda x: (x[1], x[0])):
+    print(f'{t}: {c}')
