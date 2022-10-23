@@ -137,11 +137,11 @@ short on_border(Site *sites, int* sc, int n, int t_start, int t_end)
 /**
  * @brief update num clusters, max size, rperc and cperc
 */
-void update_stats(int* sc, int n, int* num, int* max, int* rperc, int* cperc)
+void update_stats(int* sc, int n, int* num, int* max, short* rperc, short* cperc)
 {
   if(num) ++(*num);
   if(max && sc[1] > *max) *max = sc[1];
-  int rs = 0; cs = 0;
+  int rs = 0, cs = 0;
   for(int j = 0; j < n; ++j) {
     if(rperc && sc[2+j]) ++rs;
     if(cperc && sc[2+n+j]) ++cs;
@@ -264,17 +264,18 @@ void copy_cluster_data(Site* sites, int n, int i, int* seen_cluster_ids, int* se
 /**
  * @brief Send all relevant information from worker to master
  */
-void send_clusters(int rank, Site* sites, int n, int nt_workers, int** t_clusters, int* nt_clusters, int mc, int p_start, int p_end, int num)
+void send_clusters(int rank, Site* sites, int n, int nt_workers, int** t_clusters, int* nt_clusters, int mc, int p_start, int p_end, int num, int max)
 {
   int c_size = 2+2*n;
   int *data = calloc(4 + 2*n + c_size*(n+2), sizeof(int));
   int di = 4;
   
   data[0] = num;
+  data[1] = max;
   for(int tid = 0; tid < nt_workers; ++tid) {
     for(int i = 0; i < nt_clusters[tid]; ++i) {
       int *c = (t_clusters + mc*tid)[i];
-      update_stats(c, n, NULL, &data[1], &data[2], NULL);
+      update_stats(c, n, NULL, &data[1], (short*)&data[2], NULL);
     }
   }
 
@@ -461,17 +462,15 @@ int main(int argc, char *argv[])
     int** t_clusters = calloc(nt_workers * mc, sizeof(int*));
     int* nt_clusters = calloc(nt_workers, sizeof(int));
 
-    double start_perc = MPI_Wtime();
-
     // local stats
     int nums[nt_workers], maxs[nt_workers];
-    for(int i = 0; i < nt_workers; ++i) {
-      nums[i] = 0; maxs[i] = 0;
-    }
+    for(int i = 0; i < nt_workers; ++i) { nums[i] = 0; maxs[i] = 0; }
 
     // process stats
     int num = 0, max = 0;
     short rperc = 0, cperc = 0;
+
+    double start_perc = MPI_Wtime();
 
     #pragma omp parallel
     {
@@ -490,7 +489,7 @@ int main(int argc, char *argv[])
     double start_tjoin = MPI_Wtime();
     if(nt_workers > 1) join_clusters(sites, b, n, nt_workers, p_start, np_rows, &num);
 
-    if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, mc, p_start, p_end, num);
+    if(rank > MASTER) send_clusters(rank, sites, n, nt_workers, t_clusters, nt_clusters, mc, p_start, p_end, num, max);
 
     else if(rank == MASTER) {
       int c_size = 2+2*n;
@@ -502,7 +501,6 @@ int main(int argc, char *argv[])
       if(n_workers > 1) {
 
         // receive cluster data
-        start_recv = MPI_Wtime();
         int* p_clusters = NULL; // malloc(c_size * (n_workers-1)*(n+2) * sizeof(int));
         int np_clusters = 0;
         recv_clusters(sites, n, n_workers, &p_clusters, &np_clusters, &num, &max, &cperc);
