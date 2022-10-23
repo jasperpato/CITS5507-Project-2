@@ -118,7 +118,7 @@ if __name__ == '__main__':
   cval = args[cname]
   group = ('ncpus', 'nthreads')
 
-  [int(c) for c in args['c'].split(',')] if args['c'] else None
+  ncpus    = [int(c) for c in args['c'].split(',')] if args['c'] else None
   nthreads = [int(t) for t in args['t'].split(',')] if args['t'] else None
 
   data = get_data(args['fname'], cname, cval, group, ncpus, nthreads, args['s'])
