@@ -73,7 +73,7 @@ def get_data(fname, cname, cval, group, ncpus, nthreads, stds):
   data = {}
   for row in results:
     t = tuple(row[g] for g in group)
-    if abs(cval-row[cname]) < P_RES and (not ncpus or (ncpus and row['ncpus'] == ncpus)) and (not nthreads or (nthreads and row['nthreads'] == nthreads)):
+    if abs(cval-row[cname]) < P_RES and (not ncpus or (ncpus and row['ncpus'] in ncpus)) and (not nthreads or (nthreads and row['nthreads'] in nthreads)):
       if t not in data: data[t] = {} # map x to list of times
       if row[x] not in data[t]: data[t][row[x]] = []
       data[t][row[x]].append(row['total_time'])
@@ -109,8 +109,8 @@ if __name__ == '__main__':
   a.add_argument('-n', type=int)
   a.add_argument('-p', type=float, default=0.4)
   a.add_argument('-s', type=float, default=4)
-  a.add_argument('-t', type=int)
-  a.add_argument('-c', type=int)
+  a.add_argument('-t')
+  a.add_argument('-c')
   a.add_argument('--n-squared', action='store_true')
   args = vars(a.parse_args())
   
@@ -118,7 +118,7 @@ if __name__ == '__main__':
   cval = args[cname]
   group = ('ncpus', 'nthreads')
 
-  data = get_data(args['fname'], cname, cval, group, args['c'], args['t'], args['s'])
+  data = get_data(args['fname'], cname, cval, group, [int(c) for c in args['c'].split(',')], [int(t) for t in args['t'].split(',')], args['s'])
   graph(data, cname, cval, group, args['n_squared'])
 
   
