@@ -94,7 +94,13 @@ def graph(data, cname, cval, group, nsquared):
   plt.xlabel('Probability P' if cname == 'n' else ('Lattice size N*N' if nsquared else 'Lattice length N'))
   plt.ylabel('Mean total time (s)')
   plt.title(f"{'Probability P' if cname == 'p' else ('Lattice size N*N' if nsquared else 'Lattice length N')} = {cval}")
-  plt.legend(title=str(group))
+  
+  handles, labels = ax.get_legend_handles_labels()
+  labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+  ax.legend(handles, labels, title=str(group))
+
+  # plt.legend(title=str(group))
+  
   plt.show(block=True)
 
 if __name__ == '__main__':
