@@ -6,7 +6,7 @@ s = '''#!/bin/bash
 #SBATCH --partition=cits5507
 #SBATCH --nodes={}
 #SBATCH --tasks-per-node=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
 #SBATCH --time=59:59
 #SBATCH --mem-per-cpu=4G
 
@@ -17,12 +17,12 @@ python3 run.py worker "$@"
 
 file = 'results.csv'
 
-ns = [4000] # range(500,2500,500)
-ps = [0.25, 0.5, 0.75]
-nts = [1, 2, 4]
-ncs = [1,3,2,4]
+ns =  range(500, 5000+1, 500)
+ps =  [0.0, 0.2, 0.4, 0.6, 0.8, 1.0] # [0.25, 0.5, 0.75]
+nts = [1, 2, 4, 8]
+ncs = [1, 2, 3, 4]
 
-loops = 2
+loops = 1
 
 if not loops: exit()
 
