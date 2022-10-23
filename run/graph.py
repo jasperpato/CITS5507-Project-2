@@ -22,12 +22,13 @@ from argparse import ArgumentParser
 
 P_RES = 1e-3
 
-RESULTS_FILE = 'results.csv'
+ncs = [1, 2, 3, 4]
+RESULTS_FILE = '../results/results{}.csv'
 
 '''
 Returns a list of dictionaries - one for each row in csvfile
 '''
-def read_file(fname):
+def read(fname):
   rows = []
   with open(fname, 'r') as f:
     reader = csv.DictReader(f)
@@ -68,7 +69,8 @@ def average(data):
 Gather data from rows that match the const (could be n or p)
 '''
 def get_data(fname, cname, cval, group, ncpus, nthreads, stds):
-  results = read_file(fname)
+  results = []
+  for nc in ncs: results.extend(read(fname))
   x = 'p' if cname == 'n' else 'n'
   data = {}
   for row in results:
@@ -95,11 +97,10 @@ def graph(data, cname, cval, group, nsquared):
   plt.ylabel('Mean total time (s)')
   plt.title(f"{'Probability P' if cname == 'p' else ('Lattice size N*N' if nsquared else 'Lattice length N')} = {cval}")
   
+  # sort legend
   handles, labels = plt.gca().get_legend_handles_labels()
   labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
   plt.legend(handles, labels, title=str(group))
-
-  # plt.legend(title=str(group))
   
   plt.show(block=True)
 
