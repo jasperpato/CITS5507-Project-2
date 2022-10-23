@@ -1,3 +1,0 @@
-n,p,ncpus,nthreads,seed,num_clusters,max_cluster,rperc,cperc,init_time,perc_time,tjoin_time,recv_time,pjoin_time,scan_time,total_time
-2000,0.500000,1,2,10,263832,681,0,0,0.207092,0.859459,0.116916,0.000000,0.000000,0.008201,1.191669
-2000,0.500000,2,2,10,263832,681,0,0,0.271492,0.437407,0.043631,6.688107,0.080521,0.026033,7.547192

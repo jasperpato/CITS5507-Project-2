@@ -19,7 +19,7 @@
 typedef struct Site {
   int r, c;
   short occupied, seen;
-  Cluster *cluster;
+  int* cluster;
 } Site;
 
 Site* site_array(short*, int);

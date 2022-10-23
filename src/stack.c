@@ -39,3 +39,9 @@ void add(Stack* st, int s) {
 int pop(Stack* st) {
   return st->stack[st->first++];
 }
+
+void free_stack(Stack* st)
+{
+  free(st->stack);
+  free(st);
+}
