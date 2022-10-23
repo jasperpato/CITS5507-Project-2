@@ -1,4 +1,0 @@
-O O O O// comments can't contain uppercase x's or o's.
-X O X O
-X O X X
-O O O O
