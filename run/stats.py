@@ -24,8 +24,8 @@ if __name__ == '__main__':
   rows = []
   for nc in ncs: rows.extend(read(file.format(nc)))
   for r in rows:
-    t = tuple(r[p] for p in params)
-    d[t] = d.get(t, 0) + 1
+    t = tuple(r[p] for p in ('n', 'p', 'ncpus', 'nthreads'))
+    if t not in d: d[t] = []
+    d[t].append(r['total_time'])
 
-  for t, c in sorted(d.items(), key=lambda x: (x[1], x[0])):
-    print(f'{t}: {c}')
+  [print(x) for x in sorted(tuple((t, len(l)) for t, l in d.items()))]
