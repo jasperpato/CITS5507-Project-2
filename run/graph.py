@@ -21,7 +21,7 @@ from argparse import ArgumentParser
 P_RES = 1e-3
 
 ncs = [1, 2, 3, 4]
-RESULTS_FILE = '../results/results{}.csv'
+file = '../results/results{}.csv'
 
 '''
 Returns a list of dictionaries - one for each row in csvfile
@@ -87,7 +87,7 @@ Graph all n_threads on one axis, keeping either n or p constant
 def graph(data, cname, cval, group, nsquared):
 
   for t, d in data.items():
-    zs = sorted((k**2, v) for k, v in d.items() if nsquared and cname == 'p' else d.items())
+    zs = sorted(((k**2, v) for k, v in d.items()) if nsquared and cname == 'p' else d.items())
     xs, ys = [z[0] for z in zs], [z[1] for z in zs]
     plt.plot(xs, ys, label=str(t))
 
@@ -104,7 +104,6 @@ def graph(data, cname, cval, group, nsquared):
 
 if __name__ == '__main__':
   a = ArgumentParser()
-  a.add_argument('--fname', default=RESULTS_FILE)
   a.add_argument('-n', type=int)
   a.add_argument('-p', type=float, default=0.4)
   a.add_argument('-s', type=float, default=4)
@@ -120,7 +119,7 @@ if __name__ == '__main__':
   ncpus    = [int(c) for c in args['c'].split(',')] if args['c'] else None
   nthreads = [int(t) for t in args['t'].split(',')] if args['t'] else None
 
-  data = get_data(args['fname'], cname, cval, group, ncpus, nthreads, args['s'])
+  data = get_data(file, cname, cval, group, ncpus, nthreads, args['s'])
   graph(data, cname, cval, group, args['n_squared'])
 
   
