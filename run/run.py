@@ -17,11 +17,12 @@ python3 run.py worker "$@"
 file = '../results/results{}.csv'
 
 ns =  range(500, 5000+1, 500)
-ps =  [0.1,0.3,0.5,0.7,0.9] # [x/10 for x in range(10+1)] # [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+ps =  [x/10 for x in range(10+1)]
+
 ncs = [1, 2, 3, 4]
 nts = [1, 2, 4, 8]
 
-loops = 1
+loops = 5
 
 if not loops: exit()
 
