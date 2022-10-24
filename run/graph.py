@@ -87,7 +87,7 @@ Graph all n_threads on one axis, keeping either n or p constant
 def graph(data, cname, cval, group, nsquared):
 
   for t, d in data.items():
-    zs = [(k**2, v) for k, v in d.items()] if nsquared and cname == 'p' else list(d.items())
+    zs = sorted((k**2, v) for k, v in d.items() if nsquared and cname == 'p' else d.items())
     xs, ys = [z[0] for z in zs], [z[1] for z in zs]
     plt.plot(xs, ys, label=str(t))
 

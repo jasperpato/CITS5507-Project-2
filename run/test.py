@@ -57,6 +57,7 @@ def min_data_points(rows):
     t = tuple(r[p] for p in ('n', 'p', 'ncpus', 'nthreads'))
     d[t] = d.get(t, 0) + 1
   m = min(d.values())
+  print(f'Min {m} max {max(d.values())} avg {sum(d.values())/len(d.values()):.1f}')
   for t, l in sorted(d.items()):
     if l == m: print(f'{t}: {l}')
 
