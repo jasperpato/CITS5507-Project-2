@@ -6,22 +6,25 @@ Jasper Paterson 22736341
 
 Runs the percolation program for each nnodes, nthreads, n, p, stores the results in a file for each nnodes.
 
-Usage: python3 run.py scheduler
+Usage: python3 run.py
 '''
 
 import subprocess, random, sys, os
 
-ns =  [35000] # range(500, 5000+1, 500)
-ps =  [0.7] # [x/10 for x in range(5, 10+1)]
+ns =  [500] # range(500, 5000+1, 500)
+ps =  [0.2] # [x/10 for x in range(5, 10+1)]
 
-nns = [4] # [1, 2, 3, 4]
-nts = [28] # [1, 2, 4, 8]
+nns = [1] # , 2, 3, 4]
+nts = [1] # , 2, 4, 8]
 
 loops = 1
 
+file = '../results/results{}.csv'
+
 s = f'''#!/bin/bash
 #SBATCH --job-name=jp
-#SBATCH --output=/dev/null
+#SBATCH --output={file}
+#SBATCH --open-mode=append
 #SBATCH --partition=cits5507
 #SBATCH --nodes={{}}
 #SBATCH --tasks-per-node=1
@@ -33,11 +36,9 @@ module load gcc/9.4.0 openmpi/4.0.5
 python3 run.py worker "$@"
 '''
 
-file = '../results/results{}.csv'
-
 if not loops: exit()
 
-if 'scheduler' in sys.argv:
+if 'worker' not in sys.argv:
 
   for nc in nns:
     if '--overwrite' in sys.argv or not os.path.exists(file.format(nc)):
@@ -61,4 +62,5 @@ elif 'worker' in sys.argv:
         for nt in nts:
           args = ['srun', '--mpi=pmix', '../src/percolate', '-r', seeds[i], str(n), str(p), str(nt)]
           out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          with open(file.format(sys.argv[2]), 'a') as f: f.write(out.stdout.decode('utf-8'))
+          # with open(file.format(sys.argv[2]), 'a') as f: f.write(out.stdout.decode('utf-8'))
+          print(out.stdout.decode('utf-8'))
