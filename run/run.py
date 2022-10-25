@@ -4,17 +4,17 @@ LATTICE PERCOLATION USING MPI AND OPENMP
  
 Jasper Paterson 22736341
 
-Runs the percolation program for each ncpus, nthreads, n, p, stores the results in a file for each ncpus.
+Runs the percolation program for each nnodes, nthreads, n, p, stores the results in a file for each nnodes.
 
 Usage: python3 run.py scheduler
 '''
 
 import subprocess, random, sys, os
 
-ns =  [29000] # range(500, 5000+1, 500)
-ps =  [0.3] # [x/10 for x in range(5, 10+1)]
+ns =  [35000] # range(500, 5000+1, 500)
+ps =  [0.7] # [x/10 for x in range(5, 10+1)]
 
-ncs = [4] # [1, 2, 3, 4]
+nns = [4] # [1, 2, 3, 4]
 nts = [28] # [1, 2, 4, 8]
 
 loops = 1
@@ -39,14 +39,14 @@ if not loops: exit()
 
 if 'scheduler' in sys.argv:
 
-  for nc in ncs:
+  for nc in nns:
     if '--overwrite' in sys.argv or not os.path.exists(file.format(nc)):
-      with open(file.format(nc), 'w') as f: f.write('n,p,ncpus,nthreads,seed,num_clusters,max_cluster,rperc,cperc,init_time,perc_time,tjoin_time,recv_time,pjoin_time,total_time\n')
+      with open(file.format(nc), 'w') as f: f.write('n,p,nnodes,nthreads,seed,num_clusters,max_cluster,rperc,cperc,init_time,perc_time,tjoin_time,recv_time,pjoin_time,total_time\n')
 
   random.seed()
   seeds = [str(random.randint(0, int(1e6))) for _ in range(loops)]
 
-  for nc in ncs:
+  for nc in nns:
     with open('sub.sh', 'w') as f: f.write(s.format(nc))
     args = ['sbatch', 'sub.sh', str(nc), *seeds]
     subprocess.run(args)

@@ -1,4 +1,4 @@
-n,p,ncpus,nthreads,seed,num_clusters,max_cluster,rperc,cperc,init_time,perc_time,tjoin_time,recv_time,pjoin_time,total_time
+n,p,nnodes,nthreads,seed,num_clusters,max_cluster,rperc,cperc,init_time,perc_time,tjoin_time,recv_time,pjoin_time,total_time
 500,0.000000,1,1,241311,0,0,0,0,0.065846,0.000926,0.000000,0.000000,0.000000,0.066772
 500,0.000000,1,2,241311,0,0,0,0,0.042222,0.000669,0.000003,0.000000,0.000000,0.042894
 500,0.000000,1,4,241311,0,0,0,0,0.043273,0.000575,0.000007,0.000000,0.000000,0.043856
