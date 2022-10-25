@@ -3,7 +3,6 @@
  * LATTICE PERCOLATION USING MPI AND OPENMP
  * 
  * Jasper Paterson 22736341
- * Allen Antony 22706998
  */
 
 #include <stdio.h>
@@ -377,7 +376,7 @@ int main(int argc, char *argv[])
 
   // parse optional arguments
   short site = 1, verbose = 0;
-  char *fname = NULL, *oname = NULL;
+  char *fname = NULL;
   unsigned int seed = time(NULL); // only used by master, could be inconsistent between processes
 
   int c;
@@ -385,7 +384,6 @@ int main(int argc, char *argv[])
     if(c == 'v') verbose = 1;              // silence printing
     else if(c == 'b') site = 0;            // bond
     else if(c == 'f') fname = optarg;      // scan lattice from file
-    else if(c == 'o') oname = optarg;      // results file
     else if(c == 'r') seed = atoi(optarg); // seed rand with constant
   }
   // parse positional arguments
@@ -515,7 +513,6 @@ int main(int argc, char *argv[])
           int *sc = &p_clusters[c_size*i];
           if(sc[0] != -1) update_stats(sc, n, NULL, &max, &rperc, &cperc);
         }
-        // free(p_clusters);
       }
 
       // scan master's clusters
@@ -523,11 +520,8 @@ int main(int argc, char *argv[])
         for(int i = 0; i < nt_clusters[tid]; ++i) {
           int *sc = (t_clusters + mc*tid)[i];
           if(sc[0] != -1) update_stats(sc, n, NULL, &max, &rperc, &cperc);
-          // free(sc);
         }
       }
-      // free(sites);
-      // if(b) free_bond(b);
 
       double end = MPI_Wtime();
 

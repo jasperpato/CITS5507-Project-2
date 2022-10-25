@@ -1,16 +1,12 @@
 '''
-CITS5507 HPC PROJECT 1
-LATTICE PERCOLATION IN PARALLEL
-
+CITS5507 HPC PROJECT 2
+LATTICE PERCOLATION USING MPI AND OPENMP
+ 
 Jasper Paterson 22736341
-Allen Antony 22706998
 
-Reads results file and graphs all n_threads on a plot. Keeps either n or p constant as specified.
+Graph results.
 
-USAGE: python3 graph.py [--fname RESULTS_FILE] [-n N | -p P]
-
-N keep lattice size constant at N
-P keep probability constant at P
+Usage: python3 graph.py [-n N | -p P] [-t T_LIST] [-c C_LIST]
 '''
 
 import csv
@@ -38,21 +34,6 @@ def read(fname):
   return rows
 
 '''
-Remove total_times that are further than (stds * std) from mean
-'''
-def remove_outliers(data, stds):
-  outs = 0
-  for d in data.values():
-    for x, times in d.items():
-      new = []
-      mean, std = np.mean(times) if times else 0, np.std(times) if times else 0
-      for time in times:
-        if abs(time-mean) <= stds * std: new.append(time)
-        else: outs += 1
-      d[x] = new
-  print(f'Removed outliers: {outs}')
-
-'''
 Return data mapping x to mean total time
 '''    
 def average(data):
@@ -64,9 +45,9 @@ def average(data):
   print(f'Min data points per parameter set: {min(lens) if lens else 0}')
 
 '''
-Gather data from rows that match the const (could be n or p)
+Gather data from rows that match the cval (cname could be n or p)
 '''
-def get_data(fname, cname, cval, group, ncpus, nthreads, stds):
+def get_data(fname, cname, cval, group, ncpus, nthreads):
   results = []
   for nc in ncs: results.extend(read(fname.format(nc)))
   x = 'p' if cname == 'n' else 'n'
@@ -77,7 +58,6 @@ def get_data(fname, cname, cval, group, ncpus, nthreads, stds):
       if t not in data: data[t] = {} # map x to list of times
       if row[x] not in data[t]: data[t][row[x]] = []
       data[t][row[x]].append(row['total_time'])
-  # remove_outliers(data, stds)
   average(data)
   return data
 
@@ -106,7 +86,6 @@ if __name__ == '__main__':
   a = ArgumentParser()
   a.add_argument('-n', type=int)
   a.add_argument('-p', type=float, default=0.4)
-  a.add_argument('-s', type=float, default=4)
   a.add_argument('-t')
   a.add_argument('-c')
   a.add_argument('--n-squared', action='store_true')
@@ -119,7 +98,7 @@ if __name__ == '__main__':
   ncpus    = [int(c) for c in args['c'].split(',')] if args['c'] else None
   nthreads = [int(t) for t in args['t'].split(',')] if args['t'] else None
 
-  data = get_data(file, cname, cval, group, ncpus, nthreads, args['s'])
+  data = get_data(file, cname, cval, group, ncpus, nthreads)
   graph(data, cname, cval, group, args['n_squared'])
 
   

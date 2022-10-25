@@ -3,7 +3,6 @@
  * LATTICE PERCOLATION USING MPI AND OPENMP
  * 
  * Jasper Paterson 22736341
- * Allen Antony 22706998
  */
 
 #ifndef STACK_H

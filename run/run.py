@@ -1,12 +1,31 @@
+'''
+CITS5507 HPC PROJECT 2
+LATTICE PERCOLATION USING MPI AND OPENMP
+ 
+Jasper Paterson 22736341
+
+Runs the percolation program for each ncpus, nthreads, n, p, stores the results in a file for each ncpus.
+
+Usage: python3 run.py scheduler
+'''
+
 import subprocess, random, sys, os
 
-s = '''#!/bin/bash
+ns =  [29000] # range(500, 5000+1, 500)
+ps =  [0.3] # [x/10 for x in range(5, 10+1)]
+
+ncs = [4] # [1, 2, 3, 4]
+nts = [28] # [1, 2, 4, 8]
+
+loops = 1
+
+s = f'''#!/bin/bash
 #SBATCH --job-name=jp
 #SBATCH --output=/dev/null
 #SBATCH --partition=cits5507
-#SBATCH --nodes={}
+#SBATCH --nodes={{}}
 #SBATCH --tasks-per-node=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task={min(nts)}
 #SBATCH --mem-per-cpu=4G
 
 module load gcc/9.4.0 openmpi/4.0.5
@@ -15,14 +34,6 @@ python3 run.py worker "$@"
 '''
 
 file = '../results/results{}.csv'
-
-ns =  [4000] # range(500, 5000+1, 500)
-ps =  [0.9] # [x/10 for x in range(5, 10+1)]
-
-ncs = [2] # , 2, 3, 4]
-nts = [4]
-
-loops = 3
 
 if not loops: exit()
 

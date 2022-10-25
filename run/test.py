@@ -1,69 +1,75 @@
-import os, subprocess, csv
+'''
+CITS5507 HPC PROJECT 2
+LATTICE PERCOLATION USING MPI AND OPENMP
+ 
+Jasper Paterson 22736341
 
-dir = '../lattice/'
-file = '../results/results{}.csv'
+This script iterates through the lattice files and tests that all results are correct for a set of ncpus and nthreads.
+The results files are tagged with their correct results.
+
+Usage: python3 test.py scheduler
+'''
+
+import sys, subprocess, os
 
 ncs = [1, 2, 3, 4]
+nts = [1, 2, 4, 8]
+
+s = f'''#!/bin/bash
+#SBATCH --job-name=jp
+#SBATCH --output=/dev/null
+#SBATCH --partition=cits5507
+#SBATCH --nodes={{}}
+#SBATCH --tasks-per-node=1
+#SBATCH --cpus-per-task={min(nts)}
+#SBATCH --mem-per-cpu=4G
+
+module load gcc/9.4.0 openmpi/4.0.5
+
+python3 test.py worker "$@"
+'''
+
+dir = '../lattice/'
+file = '../test/test{}.txt'
 
 def get_n(fname):
   n = ''
-  for c in fname[4:]:
-    if c == '_': break
-    n+=c
-  return int(n)
+  for c in fname:
+    if c in '1234567890': n+=c
+    else:
+      if len(n): break
+  return n
 
-def get_stats(fname):
-  try:
-    stats = [int(l.strip()) for l in open(fname, 'r').readlines()[-2:]]
-    stats.append(('site' in fname))
-    return tuple(stats)
-  except: return 0, 0, False
+if 'scheduler' in sys.argv:
 
-def test_files(ncs, nts):
+  results = []
+  if not os.path.exists('../test'): os.makedirs('../test')
+
+  for nc in ncs:
+    with open('sub.sh', 'w') as f: f.write(s.format(nc, nc))
+    with open(file.format(nc), 'w') as f: pass
+    args = ['sbatch', '--wait', 'sub.sh', str(nc)]
+    out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+    with open(file.format(nc), 'r') as f: results.append(f.read())
+
+  correct = ''
   for fname in sorted(os.listdir(dir)):
     path = dir + fname
-    num, max, site = get_stats(path)
-    print(fname, num, max, site)
-    for nc in ncs:
-      for nt in nts:
-        args = ['srun', '--partition=cits5507', '--tasks-per-node=1', '--cpus-per-task=8', '--mem-per-cpu=4G', f'--nodes={nc}', '--mpi=pmix', '../src/percolate', '-s' if site else '-b', '-f', path, str(get_n(fname)), str(nt)]
-        out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(out.stdout.decode('utf-8') + '\n')
+    with open(path, 'r') as f:
+      num, max = [int(x) for x in f.readlines()[-2:]]
+      for nt in nts: correct += f'{num}, {max}\n'
 
-def read(fname):
-  rows = []
-  with open(fname, 'r') as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-      for k, v in row.items():
-        if '.' in v: row[k] = float(v)
-        else: row[k] = int(v)
-      rows.append(row)
-  return rows
+  print('Correct' if len(set(results)) == 1 and results[0] == correct else 'Incorrect')
 
-def test_consistency(rows):
-  d = {}
-  for r in rows:
-    t = tuple(r[p] for p in ('n', 'p', 'seed'))
-    if t not in d: d[t] = []
-    d[t].append(tuple(r[c] for c in ('num_clusters', 'max_cluster', 'rperc', 'cperc')))
-  for t in d:
-    s = set(d[t])
-    if len(s) > 1: print(*s)
+elif 'worker' in sys.argv:
 
-def min_data_points(rows):
-  d = {}
-  for r in rows:
-    t = tuple(r[p] for p in ('n', 'p', 'ncpus', 'nthreads'))
-    d[t] = d.get(t, 0) + 1
-  m = min(d.values())
-  print(f'Min {m} max {max(d.values())} avg {sum(d.values())/len(d.values()):.1f}')
-  for t, l in sorted(d.items()):
-    if l == m: print(f'{t}: {l}')
-
-if __name__ == '__main__':
-  rows = []
-  for nc in ncs: rows.extend(read(file.format(nc)))
-
-  test_consistency(rows)
-  min_data_points(rows)
+   for fname in sorted(os.listdir(dir)):
+    path = dir + fname
+    for nt in nts:
+      args = ['srun', '--mpi=pmix', '../src/percolate', '-s' if 'site' in path else '-b', '-f', path, get_n(fname), str(nt)]
+      out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      num, max = [int(x) for x in out.stdout.decode('utf-8').split(',')[5:7]]
+      
+      with open(file.format(sys.argv[2]), 'a') as f:
+        f.write(f'{num}, {max}\n')
