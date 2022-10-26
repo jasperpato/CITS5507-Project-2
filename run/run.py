@@ -17,7 +17,7 @@ ps =  [0.3] # [x/10 for x in range(5, 10+1)]
 nns = [4] # [1, 2, 3, 4]
 nts = range(8, 28+1, 2)
 
-loops = 9
+loops = 5
 
 file = '../results/threads{}.csv' # '../results/results{}.csv'
 
