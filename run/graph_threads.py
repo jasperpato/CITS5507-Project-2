@@ -1,3 +1,14 @@
+'''
+CITS5507 HPC PROJECT 2
+LATTICE PERCOLATION USING MPI AND OPENMP
+ 
+Jasper Paterson 22736341
+
+Graph results, save as png.
+
+Usage: python3 graph_threads.py
+'''
+
 from graph import read
 import matplotlib.pyplot as plt
 from pprint import pprint
@@ -25,7 +36,5 @@ plt.xticks(range(8, 28+1, 2))
 plt.xlabel('N_THREADS')
 plt.ylabel('Mean total time (s)')
 plt.title('N_NODES = 4, N = 5000, P = 0.3')
-
-# plt.show(block=True)
 
 plt.savefig('../graph/threads.png')
