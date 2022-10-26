@@ -4,7 +4,7 @@ LATTICE PERCOLATION USING MPI AND OPENMP
  
 Jasper Paterson 22736341
 
-Scan all results and make sure results are consistent for all (n, p, seed) sets.
+Scan all results and make sure results are the same for all (n, p, seed) sets.
 
 Usage: python3 test_consistency.py
 '''

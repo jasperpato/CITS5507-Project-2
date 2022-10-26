@@ -3,8 +3,7 @@
 
 **/obj/**
 **/percolate
-**/log.txt
 
 **/sub.sh
-**/slurm*
 **/test
+**/__pycache__

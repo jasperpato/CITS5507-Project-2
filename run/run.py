@@ -11,11 +11,11 @@ Usage: python3 run.py
 
 import subprocess, random, sys, os
 
-ns =  [500] # range(500, 5000+1, 500)
-ps =  [0.2] # [x/10 for x in range(5, 10+1)]
+ns =  range(500, 5000+1, 500)
+ps =  [x/10 for x in range(5, 10+1)]
 
-nns = [1] # , 2, 3, 4]
-nts = [1] # , 2, 4, 8]
+nns = [1, 2, 3, 4]
+nts = [1, 2, 4, 8]
 
 loops = 1
 
@@ -48,7 +48,7 @@ if 'worker' not in sys.argv:
   seeds = [str(random.randint(0, int(1e6))) for _ in range(loops)]
 
   for nc in nns:
-    with open('sub.sh', 'w') as f: f.write(s.format(nc))
+    with open('sub.sh', 'w') as f: f.write(s.format(nc, nc))
     args = ['sbatch', 'sub.sh', str(nc), *seeds]
     subprocess.run(args)
 
@@ -62,5 +62,4 @@ elif 'worker' in sys.argv:
         for nt in nts:
           args = ['srun', '--mpi=pmix', '../src/percolate', '-r', seeds[i], str(n), str(p), str(nt)]
           out = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          # with open(file.format(sys.argv[2]), 'a') as f: f.write(out.stdout.decode('utf-8'))
-          print(out.stdout.decode('utf-8'))
+          print(out.stdout.decode('utf-8'), end='')

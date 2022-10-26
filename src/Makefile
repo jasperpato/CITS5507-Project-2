@@ -1,6 +1,6 @@
 IDIR = ../include
 CC = mpicc
-CFLAGS = -I$(IDIR) -std=c11 -Wall -Werror -fopenmp -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -g -O0
+CFLAGS = -I$(IDIR) -std=c11 -Wall -Werror -fopenmp -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable
 
 ODIR = obj
 LDIR = ../lib
