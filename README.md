@@ -27,17 +27,27 @@ srun --mpi=pmix --partition=cits5507 --nodes=[N_NODES] --tasks-per-node=1 --cpus
 - [N_THREADS] number of threads to utilise, default 1
 
 Examples:
+
 ```console
 srun --mpi=pmix --partition=cits5507 --nodes=1 --tasks-per-node=1 --cpus-per-task=2 ./percolate 1000 0.5 2
 ```
+
 ```console
 srun --mpi=pmix --partition=cits5507 --nodes=3 --tasks-per-node=1 --cpus-per-task=8 ./percolate -v -b -r 10 5000 0.5 8
 ```
+
 ```console
 srun --mpi=pmix --partition=cits5507 --nodes=2 --tasks-per-node=1 --cpus-per-task=1 ./percolate -b -f ../lattice/bond20_2.txt 20
 ```
+
 ```console
 srun --mpi=pmix --partition=cits5507 --nodes=2 --tasks-per-node=1 --cpus-per-task=1 ./percolate -v -f ../lattice/site12_2.txt 12
+```
+
+If not using srun, execute a single node percolation:
+
+```console
+./percolate 1000 0.5
 ```
 
 To generate results:
@@ -45,13 +55,13 @@ To generate results:
 ```console
 cd run
 python3 run.py
-````
+```
 
 To test or graph results:
+
 ```console
 cd run
 python3 test_consistency.py
 python3 test_files.py
 python3 graph.py [-n N | -p P] [-t N_THREAD_LIST] [-c N_NODES_LIST] [--save]
 ```
-
