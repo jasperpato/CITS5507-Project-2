@@ -11,15 +11,15 @@ Usage: python3 run.py
 
 import subprocess, random, sys, os
 
-ns =  range(500, 5000+1, 500)
-ps =  [x/10 for x in range(5, 10+1)]
+ns =  [5000] # range(500, 5000+1, 500)
+ps =  [0.3] # [x/10 for x in range(5, 10+1)]
 
-nns = [1, 2, 3, 4]
-nts = [1, 2, 4, 8]
+nns = [4] # [1, 2, 3, 4]
+nts = range(8, 28+1, 2)
 
 loops = 1
 
-file = '../results/results{}.csv'
+file = '../results/threads.csv' # '../results/results{}.csv'
 
 s = f'''#!/bin/bash
 #SBATCH --job-name=jp
