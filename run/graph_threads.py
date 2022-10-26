@@ -20,7 +20,9 @@ for r in rows:
   nt = r['nthreads']
   if nt not in d:
     d[nt] = []
-    d[nt].append(r['total_time'])
+  d[nt].append(r['total_time'])
+
+pprint(d)
 
 for nt in d:
   d[nt] = sum(d[nt]) / len(d[nt])
