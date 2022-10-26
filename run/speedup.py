@@ -1,3 +1,14 @@
+'''
+CITS5507 HPC PROJECT 2
+LATTICE PERCOLATION USING MPI AND OPENMP
+ 
+Jasper Paterson 22736341
+
+Reports speed-up between two (nnodes, nthreads).
+
+Usage:  python3  speedup.py  n1,t1  n2,t2
+'''
+
 import sys
 from graph import read
 from pprint import pprint
@@ -27,8 +38,6 @@ for r in rows:
 for t1 in d:
   for t2 in d[t1]:
     d[t1][t2] = sum(d[t1][t2]) / len(d[t1][t2])
-
-# pprint(d)
 
 speedups = {}
 
