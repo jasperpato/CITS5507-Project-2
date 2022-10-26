@@ -17,9 +17,9 @@ ps =  [0.3] # [x/10 for x in range(5, 10+1)]
 nns = [4] # [1, 2, 3, 4]
 nts = range(8, 28+1, 2)
 
-loops = 1
+loops = 9
 
-file = '../results/threads.csv' # '../results/results{}.csv'
+file = '../results/threads{}.csv' # '../results/results{}.csv'
 
 s = f'''#!/bin/bash
 #SBATCH --job-name=jp
@@ -28,7 +28,7 @@ s = f'''#!/bin/bash
 #SBATCH --partition=cits5507
 #SBATCH --nodes={{}}
 #SBATCH --tasks-per-node=1
-#SBATCH --cpus-per-task={min(nts)}
+#SBATCH --cpus-per-task={max(nts)}
 #SBATCH --mem-per-cpu=4G
 
 module load gcc/9.4.0 openmpi/4.0.5
